@@ -37,6 +37,11 @@ import { MappingEditor } from "./MappingEditor";
 import { POSES } from "./poses";
 import { SuitAvatar } from "./SuitAvatar";
 import { WebSerialSuit } from "./serial";
+import {
+  LanguageToggle,
+  useI18n,
+  type TranslationKey
+} from "./i18n";
 
 const isDesktop = Boolean(window.cybermorph);
 const DOWNLOAD_URL = "./downloads/CyberMorph-Setup.exe?v=0.1.0-clean";
@@ -60,27 +65,31 @@ function readStored<T>(key: string, fallback: T): T {
 }
 
 function Hero({ onLaunch }: { onLaunch: () => void }) {
+  const { t } = useI18n();
   return (
     <section className="hero" id="home">
       <div className="noise" />
       <nav className="site-nav">
         <a className="brand" href="#home"><i>CM</i><span>CYBER<br />MORPH</span></a>
         <div className="nav-links">
-          <a href="#how">How it works</a>
-          <a href="#studio">Simulator</a>
+          <a href="#how">{t("nav.how")}</a>
+          <a href="#studio">{t("nav.simulator")}</a>
           <a href="https://github.com/davefrassoni/cybermorph" target="_blank" rel="noreferrer">GitHub</a>
         </div>
-        <a className="nav-download" href={DOWNLOAD_URL}><Download size={15} /> Windows</a>
+        <div className="nav-actions">
+          <LanguageToggle compact />
+          <a className="nav-download" href={DOWNLOAD_URL}><Download size={15} /> {t("nav.windows")}</a>
+        </div>
       </nav>
       <div className="hero-copy">
-        <div className="hero-kicker"><Sparkles size={13} /> WEARABLE MUSIC INSTRUMENT</div>
-        <h1>Your body<br />is the <em>interface.</em></h1>
-        <p>Turn every bend, twist and impact into MIDI, evolving sound and living loops. Train the suit to understand the way you move.</p>
+        <div className="hero-kicker"><Sparkles size={13} /> {t("hero.kicker")}</div>
+        <h1>{t("hero.line1")}<br />{t("hero.line2")} <em>{t("hero.emphasis")}</em></h1>
+        <p>{t("hero.description")}</p>
         <div className="hero-actions">
-          <button className="hero-primary" onClick={onLaunch}>Launch simulator <ArrowRight size={18} /></button>
-          <a className="hero-secondary" href={DOWNLOAD_URL}><Download size={17} /> Download for Windows</a>
+          <button className="hero-primary" onClick={onLaunch}>{t("hero.launch")} <ArrowRight size={18} /></button>
+          <a className="hero-secondary" href={DOWNLOAD_URL}><Download size={17} /> {t("hero.download")}</a>
         </div>
-        <span className="build-note">v0.1 preview · Windows 10/11 · open source</span>
+        <span className="build-note">{t("hero.build")}</span>
       </div>
       <div className="hero-visual" aria-hidden="true">
         <div className="orb"><span /><span /><span /></div>
@@ -88,23 +97,24 @@ function Hero({ onLaunch }: { onLaunch: () => void }) {
         <div className="motion-trace trace-b" />
         <div className="data-tag tag-a">LEFT_ELBOW <strong>84.2°</strong></div>
         <div className="data-tag tag-b">MIDI CC 74 <strong>108</strong></div>
-        <div className="data-tag tag-c">GESTURE <strong>REACH 96%</strong></div>
+        <div className="data-tag tag-c">{t("hero.gesture")} <strong>{t("pose.reach").toUpperCase()} 96%</strong></div>
       </div>
-      <a className="scroll-cue" href="#how">EXPLORE <ArrowDown size={14} /></a>
+      <a className="scroll-cue" href="#how">{t("hero.explore")} <ArrowDown size={14} /></a>
     </section>
   );
 }
 
 function ProcessStrip() {
+  const { t } = useI18n();
   const steps = [
-    { icon: Cable, number: "01", title: "Connect", text: "Stream orientation from Arduino IMUs over USB serial." },
-    { icon: SlidersHorizontal, number: "02", title: "Map", text: "Shape any joint axis into MIDI, filters, pitch or loops." },
-    { icon: BrainCircuit, number: "03", title: "Learn", text: "Record examples and train gesture recognition on-device." },
-    { icon: AudioWaveform, number: "04", title: "Perform", text: "Route into your DAW and make movement audible." }
+    { icon: Cable, number: "01", title: t("process.connect.title"), text: t("process.connect.text") },
+    { icon: SlidersHorizontal, number: "02", title: t("process.map.title"), text: t("process.map.text") },
+    { icon: BrainCircuit, number: "03", title: t("process.learn.title"), text: t("process.learn.text") },
+    { icon: AudioWaveform, number: "04", title: t("process.perform.title"), text: t("process.perform.text") }
   ];
   return (
     <section className="process" id="how">
-      <span className="section-number">001 / SIGNAL FLOW</span>
+      <span className="section-number">{t("process.eyebrow")}</span>
       <div className="process-grid">
         {steps.map(({ icon: Icon, ...step }) => (
           <article key={step.number}><span>{step.number}</span><Icon size={25} /><h3>{step.title}</h3><p>{step.text}</p></article>
@@ -115,6 +125,7 @@ function ProcessStrip() {
 }
 
 function Studio() {
+  const { t } = useI18n();
   const [source, setSource] = useState<"simulator" | "hardware">("simulator");
   const [pose, setPose] = useState<Pose>(POSES.neutral!);
   const poseRef = useRef(pose);
@@ -125,7 +136,7 @@ function Studio() {
   const smoothingValues = useRef(new Map<string, number>());
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [serialConnected, setSerialConnected] = useState(false);
-  const [serialMessage, setSerialMessage] = useState("Not connected");
+  const [serialStatus, setSerialStatus] = useState<"notConnected" | "connected" | "disconnected">("notConnected");
   const serialSuit = useRef(new WebSerialSuit());
   const [captures, setCaptures] = useState<LabeledCapture[]>(() => readStored("cm.captures", []));
   const [label, setLabel] = useState("reach");
@@ -220,48 +231,54 @@ function Studio() {
           if (parsed.model) setModel(parsed.model);
         }
       }
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not import dataset");
+    } catch {
+      setError(t("error.import"));
     }
   };
 
   return (
     <section className="studio-shell" id="studio">
       <div className="studio-header">
-        <div><span className="section-number">002 / LIVE WORKSPACE</span><h2>Movement laboratory</h2></div>
-        <div className="live-badge"><i /> ENGINE 30 FPS</div>
+        <div><span className="section-number">{t("studio.eyebrow")}</span><h2>{t("studio.title")}</h2></div>
+        <div className="studio-header-actions">
+          <LanguageToggle compact />
+          <div className="live-badge"><i /> {t("studio.engine")}</div>
+        </div>
       </div>
-      <ConnectionBar source={source} onSource={setSource} serialConnected={serialConnected} serialMessage={serialMessage} audioEnabled={audioEnabled} onSerial={() => {
+      <ConnectionBar source={source} onSource={setSource} serialConnected={serialConnected} serialMessage={t(`serial.${serialStatus}` as TranslationKey)} audioEnabled={audioEnabled} onSerial={() => {
         if (serialConnected) {
           void serialSuit.current.disconnect().then(() => {
             setSerialConnected(false);
-            setSerialMessage("Disconnected");
+            setSerialStatus("disconnected");
             setSource("simulator");
           });
         } else {
           setSource("hardware");
           void serialSuit.current.connect(
             processFrame,
-            (connected, message) => { setSerialConnected(connected); setSerialMessage(message); }
-          ).catch((reason) => {
+            (connected) => {
+              setSerialConnected(connected);
+              setSerialStatus(connected ? "connected" : "disconnected");
+            }
+          ).catch(() => {
             setSerialConnected(false);
             setSource("simulator");
-            setError(reason instanceof Error ? reason.message : "Could not open Arduino");
+            setError(t("error.serial"));
           });
         }
       }} onAudio={async () => {
-        try { await motionAudio.start(); setAudioEnabled(true); } catch { setError("Audio could not be started in this browser."); }
+        try { await motionAudio.start(); setAudioEnabled(true); } catch { setError(t("error.audio")); }
       }} />
       {error && <button className="error-toast" onClick={() => setError("")}>{error} ×</button>}
       <div className="studio-grid">
         <section className="panel avatar-panel">
           <div className="avatar-toolbar">
-            <div><span className="eyebrow">DIGITAL TWIN</span><strong>{selected.replaceAll("_", " ")}</strong></div>
-            <button className="icon-button" title="Reset pose" onClick={() => setPose(POSES.neutral!)}><RotateCcw size={17} /></button>
+            <div><span className="eyebrow">{t("avatar.eyebrow")}</span><strong>{t(`joint.${selected}` as TranslationKey)}</strong></div>
+            <button className="icon-button" title={t("avatar.reset")} onClick={() => setPose(POSES.neutral!)}><RotateCcw size={17} /></button>
           </div>
           <div className="avatar-stage"><SuitAvatar pose={pose} selected={selected} onSelect={setSelected} /></div>
           <div className="pose-presets">
-            {Object.keys(POSES).map((name) => <button key={name} className={pose === POSES[name] ? "active" : ""} onClick={() => setPose(POSES[name]!)}>{name}</button>)}
+            {Object.keys(POSES).map((name) => <button key={name} className={pose === POSES[name] ? "active" : ""} onClick={() => setPose(POSES[name]!)}>{t(`pose.${name}` as TranslationKey)}</button>)}
           </div>
           <div className="joint-controls">
             {AXES.map((axis: Axis) => (
@@ -288,7 +305,7 @@ function Studio() {
           onStop={stopRecording}
           onTrain={() => {
             try { setModel(trainGestureModel(captures)); setError(""); }
-            catch (reason) { setError(reason instanceof Error ? reason.message : "Training failed"); }
+            catch { setError(t("error.training")); }
           }}
           onClear={() => { setCaptures([]); setModel(null); localStorage.removeItem("cm.model"); }}
           onExport={(format) => {
@@ -303,11 +320,12 @@ function Studio() {
 }
 
 function Footer() {
+  const { t } = useI18n();
   return (
     <footer>
       <a className="brand" href="#home"><i>CM</i><span>CYBER<br />MORPH</span></a>
-      <p>Built for bodies that refuse to stand still.</p>
-      <div><a href="https://github.com/davefrassoni/cybermorph"><Github size={17} /> Source</a><a href="#studio"><Box size={17} /> Simulator</a></div>
+      <p>{t("footer.tagline")}</p>
+      <div><a href="https://github.com/davefrassoni/cybermorph"><Github size={17} /> {t("footer.source")}</a><a href="#studio"><Box size={17} /> {t("footer.simulator")}</a></div>
     </footer>
   );
 }

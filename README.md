@@ -1,5 +1,12 @@
 # CyberMorph
 
+## Probar online
+
+**[Abrir CyberMorph Simulator en davefrassoni.com/cybermorph](https://davefrassoni.com/cybermorph/)**
+
+El simulador web permite mover el traje 3D, configurar mapeos, probar el motor
+de audio y grabar ejemplos de gestos sin conectar ningún Arduino.
+
 CyberMorph convierte el movimiento de un traje wearable con Arduino e IMUs en
 MIDI, sonido y loops. Incluye:
 

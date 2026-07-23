@@ -1,5 +1,6 @@
 import { Cable, CirclePower, Music2, Usb } from "lucide-react";
 import { useState } from "react";
+import { useI18n } from "./i18n";
 
 type Props = {
   source: "simulator" | "hardware";
@@ -20,6 +21,7 @@ export function ConnectionBar({
   onAudio,
   onSerial
 }: Props) {
+  const { t } = useI18n();
   const [midiOutputs, setMidiOutputs] = useState<MIDIOutput[]>([]);
   const [midiSelected, setMidiSelected] = useState("");
 
@@ -39,8 +41,8 @@ export function ConnectionBar({
   return (
     <div className="connection-bar">
       <div className="source-switch">
-        <button className={source === "simulator" ? "active" : ""} onClick={() => onSource("simulator")}>SIM</button>
-        <button className={source === "hardware" ? "active" : ""} onClick={() => onSource("hardware")} disabled={!window.cybermorph}>SUIT</button>
+        <button className={source === "simulator" ? "active" : ""} onClick={() => onSource("simulator")}>{t("source.sim")}</button>
+        <button className={source === "hardware" ? "active" : ""} onClick={() => onSource("hardware")} disabled={!window.cybermorph}>{t("source.suit")}</button>
       </div>
       <div className="connection-item">
         <Usb size={16} />
@@ -50,10 +52,10 @@ export function ConnectionBar({
               className={`compact-button ${serialConnected ? "connected" : ""}`}
               onClick={onSerial}
             >
-              <Cable size={14} /> {serialConnected ? "Disconnect" : "Choose Arduino"}
+              <Cable size={14} /> {serialConnected ? t("serial.disconnect") : t("serial.choose")}
             </button>
           </>
-        ) : <span>Desktop app required for Arduino</span>}
+        ) : <span>{t("serial.desktopRequired")}</span>}
         <span className={`status-dot ${serialConnected ? "online" : ""}`} title={serialMessage} />
       </div>
       <div className="connection-item midi">
@@ -62,13 +64,13 @@ export function ConnectionBar({
           setMidiSelected(event.target.value);
           import("./audio").then(({ midiController }) => midiController.select(event.target.value));
         }}>
-          {!midiOutputs.length && <option value="">MIDI output</option>}
+          {!midiOutputs.length && <option value="">{t("midi.output")}</option>}
           {midiOutputs.map((output) => <option key={output.id} value={output.id}>{output.name ?? output.id}</option>)}
         </select>
-        <button className="compact-button" onClick={connectMidi}>{midiOutputs.length ? "Refresh" : "Enable"}</button>
+        <button className="compact-button" onClick={connectMidi}>{midiOutputs.length ? t("action.refresh") : t("action.enable")}</button>
       </div>
       <button className={`audio-button ${audioEnabled ? "enabled" : ""}`} onClick={onAudio}>
-        <CirclePower size={16} /> {audioEnabled ? "Audio on" : "Start audio"}
+        <CirclePower size={16} /> {audioEnabled ? t("audio.on") : t("audio.start")}
       </button>
     </div>
   );
