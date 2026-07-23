@@ -39,7 +39,7 @@ import { SuitAvatar } from "./SuitAvatar";
 import { WebSerialSuit } from "./serial";
 
 const isDesktop = Boolean(window.cybermorph);
-const DOWNLOAD_URL = "./downloads/CyberMorph-Setup.exe";
+const DOWNLOAD_URL = "./downloads/CyberMorph-Setup.exe?v=0.1.0-clean";
 
 function downloadBrowser(name: string, content: string) {
   const url = URL.createObjectURL(new Blob([content], { type: "application/octet-stream" }));
