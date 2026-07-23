@@ -1,0 +1,83 @@
+name: Build and deploy CyberMorph
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: cybermorph-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-web:
+    name: Test and build web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cybermorph-web
+          path: apps/studio/dist
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:win
+      - name: Normalize installer filename
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem apps/desktop/release/CyberMorph-Setup-*.exe | Select-Object -First 1
+          if (-not $installer) { throw "Windows installer was not generated" }
+          Copy-Item $installer.FullName apps/desktop/release/CyberMorph-Setup.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cybermorph-windows
+          path: apps/desktop/release/CyberMorph-Setup.exe
+          if-no-files-found: error
+
+  deployment-ready:
+    name: Hand off to VPS pull deploy
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [test-web, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm deployment handoff
+        run: |
+          echo "Web and Windows artifacts are ready."
+          echo "The cybermorph-pull.timer on the VPS will pull this main commit."
+
+  release:
+    name: Publish tagged release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test-web, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cybermorph-windows
+          path: release
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/CyberMorph-Setup.exe
+          generate_release_notes: true

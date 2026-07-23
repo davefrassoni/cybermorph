@@ -1,0 +1,23 @@
+{
+  "name": "cybermorph",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Motion-to-music studio and wearable suit simulator",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build -w @cybermorph/core && npm run dev -w @cybermorph/studio",
+    "dev:desktop": "npm run build -w @cybermorph/core && npm run dev -w @cybermorph/desktop",
+    "build": "npm run build -w @cybermorph/core && npm run build -w @cybermorph/studio",
+    "build:desktop": "npm run build -w @cybermorph/core && npm run build:desktop -w @cybermorph/studio && npm run build -w @cybermorph/desktop",
+    "dist:win": "npm run build:desktop && npm run dist:win -w @cybermorph/desktop",
+    "test": "npm run test -w @cybermorph/core",
+    "typecheck": "npm run typecheck -w @cybermorph/core && npm run typecheck -w @cybermorph/studio && npm run typecheck -w @cybermorph/desktop",
+    "lint": "npm run lint -w @cybermorph/studio"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
