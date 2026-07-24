@@ -52,6 +52,7 @@ import { CameraPoseTracker } from "./CameraPoseTracker";
 import { MovementPanel } from "./MovementPanel";
 import { POSES } from "./poses";
 import { SensorManager } from "./SensorManager";
+import { SerialMonitor, type SerialMonitorLine } from "./SerialMonitor";
 import { SuitAvatar } from "./SuitAvatar";
 import { WebSerialSuit } from "./serial";
 import { UpdateControl } from "./UpdateControl";
@@ -173,6 +174,8 @@ function Studio() {
     () => readStored("cm.serialFormat.v1", "auto")
   );
   const serialSuit = useRef(new WebSerialSuit());
+  const [serialLines, setSerialLines] = useState<SerialMonitorLine[]>([]);
+  const serialLineId = useRef(0);
   const [captures, setCaptures] = useState<LabeledCapture[]>(() => readStored("cm.captures.v2", []));
   const [label, setLabel] = useState("reach");
   const [recording, setRecording] = useState(false);
@@ -440,7 +443,15 @@ function Studio() {
               setSerialStatus(connected ? "connected" : "disconnected");
             },
             sensorsRef.current.map((sensor) => sensor.id),
-            serialFormat
+            serialFormat,
+            (text, parsed) => {
+              setSerialLines((current) => [...current, {
+                id: ++serialLineId.current,
+                receivedAt: Date.now(),
+                text,
+                parsed
+              }].slice(-200));
+            }
           ).catch(() => {
             setSerialConnected(false);
             setSource("simulator");
@@ -498,6 +509,7 @@ function Studio() {
           </div>
           </section>
           <SensorManager sensors={sensors} onChange={setSensors} />
+          <SerialMonitor connected={serialConnected} lines={serialLines} onClear={() => setSerialLines([])} />
           <CameraPoseTracker onPose={(cameraPose) => {
             if (!movementPlaying) setPose(cameraPose);
           }} />

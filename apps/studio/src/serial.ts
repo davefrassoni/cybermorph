@@ -13,7 +13,8 @@ export class WebSerialSuit {
     onFrame: (frame: SensorFrame) => void,
     onStatus: (connected: boolean, message: string) => void,
     sensorIds: string[],
-    format: SerialFrameFormat
+    format: SerialFrameFormat,
+    onLine?: (line: string, parsed: boolean) => void
   ): Promise<void> {
     if (!navigator.serial) {
       throw new Error("Web Serial is unavailable. Use the Windows desktop app.");
@@ -40,6 +41,7 @@ export class WebSerialSuit {
         buffer = lines.pop() ?? "";
         for (const line of lines) {
           const frame = parseSensorLine(line, Date.now(), { sensorIds, format });
+          onLine?.(line, Boolean(frame));
           if (frame) onFrame(frame);
         }
       }
