@@ -10,7 +10,7 @@ export const POSES: Record<string, Pose> = {
     chest: { pitch: -5, roll: 0, yaw: 0 }
   },
   twist: {
-    chest: { pitch: 0, roll: 0, yaw: 55 },
+    chest: { pitch: 0, roll: 0, yaw: 38 },
     left_shoulder: { pitch: -30, roll: 35, yaw: 0 },
     right_shoulder: { pitch: -30, roll: -35, yaw: 0 },
     left_elbow: { pitch: 95, roll: 0, yaw: 0 },
@@ -18,10 +18,12 @@ export const POSES: Record<string, Pose> = {
   },
   crouch: {
     chest: { pitch: 22, roll: 0, yaw: 0 },
-    left_hip: { pitch: 45, roll: 0, yaw: 0 },
-    right_hip: { pitch: 45, roll: 0, yaw: 0 },
-    left_knee: { pitch: 92, roll: 0, yaw: 0 },
-    right_knee: { pitch: 92, roll: 0, yaw: 0 }
+    left_hip: { pitch: -55, roll: 0, yaw: 0 },
+    right_hip: { pitch: -55, roll: 0, yaw: 0 },
+    left_knee: { pitch: 105, roll: 0, yaw: 0 },
+    right_knee: { pitch: 105, roll: 0, yaw: 0 },
+    left_ankle: { pitch: -22, roll: 0, yaw: 0 },
+    right_ankle: { pitch: -22, roll: 0, yaw: 0 }
   },
   kick: {
     right_hip: { pitch: -70, roll: 0, yaw: 0 },

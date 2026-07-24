@@ -107,6 +107,7 @@ a { color: inherit; text-decoration: none; }
 .panel-heading, .avatar-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 19px 20px; border-bottom: 1px solid var(--line); }
 .panel-heading h2 { margin: 5px 0 0; font-size: 17px; letter-spacing: -.03em; }
 .avatar-toolbar strong { display: block; margin-top: 5px; text-transform: capitalize; font-size: 14px; }
+.avatar-toolbar small { display: block; margin-top: 4px; color: #5f6a75; font: 8px var(--mono); letter-spacing: .04em; text-transform: uppercase; }
 .icon-button { width: 34px; height: 34px; display: grid; place-items: center; padding: 0; cursor: pointer; color: var(--acid); border: 1px solid #313a45; background: #0a0e13; }
 .avatar-stage { height: 545px; }
 .pose-presets { display: flex; gap: 6px; padding: 10px 14px; overflow-x: auto; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -115,6 +116,8 @@ a { color: inherit; text-decoration: none; }
 .joint-controls { padding: 15px 19px 20px; display: grid; gap: 12px; }
 .joint-controls label span { display: flex; justify-content: space-between; color: #707b85; font: 9px var(--mono); text-transform: uppercase; }
 .joint-controls label b { color: #d7dde0; font-weight: 400; }
+.joint-controls label > small { display: flex; justify-content: space-between; margin-top: 5px; color: #4f5964; font: 7px var(--mono); }
+.joint-controls label > small i { font-style: normal; }
 input[type=range] { width: 100%; height: 2px; accent-color: var(--acid); cursor: pointer; }
 .mapping-panel { max-height: 806px; overflow: hidden; }
 .mapping-list { padding: 10px; max-height: 742px; overflow-y: auto; }

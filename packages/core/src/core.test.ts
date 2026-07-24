@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MAPPINGS,
+  clampJointValue,
+  clampPose,
   mapFrame,
   parseSensorLine,
   predictGesture,
@@ -35,6 +37,22 @@ describe("mapping engine", () => {
     const output = mapFrame(frame(130), [mapping]);
     expect(output[0]?.normalized).toBe(1);
     expect(output[0]?.value).toBe(12000);
+  });
+});
+
+describe("biomechanical limits", () => {
+  it("prevents impossible forearm and knee rotations", () => {
+    expect(clampJointValue("left_elbow", "pitch", 180)).toBe(145);
+    expect(clampJointValue("right_elbow", "roll", -180)).toBe(-10);
+    expect(clampJointValue("left_knee", "pitch", -40)).toBe(0);
+  });
+
+  it("clamps a pose without adding absent joints", () => {
+    expect(clampPose({
+      left_elbow: { pitch: 190, roll: 40, yaw: -120 }
+    })).toEqual({
+      left_elbow: { pitch: 145, roll: 10, yaw: -80 }
+    });
   });
 });
 

@@ -13,8 +13,9 @@ MIDI, sonido y loops. Incluye:
 - **CyberMorph Studio** para Windows: entrada de sensores por puerto serie,
   mapeo MIDI por eje, audio en vivo, grabación de datasets y reconocimiento de
   gestos.
-- **CyberMorph Simulator**: un cuerpo 3D articulado para probar los mapeos sin
-  conectar el hardware.
+- **CyberMorph Simulator**: un cuerpo 3D con esqueleto jerárquico y límites
+  biomecánicos por articulación para probar los mapeos sin conectar el
+  hardware.
 - **Motor de movimiento compartido**: el simulador web y la aplicación de
   escritorio utilizan el mismo código de normalización, curvas, suavizado y
   clasificación de gestos.

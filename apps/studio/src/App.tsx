@@ -15,7 +15,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AXES,
   DEFAULT_MAPPINGS,
+  JOINT_LIMITS,
   capturesToCsv,
+  clampJointValue,
+  clampJointVector,
   mapFrame,
   poseToFrame,
   predictGesture,
@@ -186,7 +189,10 @@ function Studio() {
 
   useEffect(() => () => { void serialSuit.current.disconnect(); }, []);
 
-  const selectedVector = pose[selected] ?? { pitch: 0, roll: 0, yaw: 0 };
+  const selectedVector = clampJointVector(
+    selected,
+    pose[selected] ?? { pitch: 0, roll: 0, yaw: 0 }
+  );
   const valueMap = useMemo(() => new Map(outputs.map((output) => [output.mappingId, output.normalized])), [outputs]);
 
   const saveData = async (name: string, content: string) => {
@@ -273,7 +279,7 @@ function Studio() {
       <div className="studio-grid">
         <section className="panel avatar-panel">
           <div className="avatar-toolbar">
-            <div><span className="eyebrow">{t("avatar.eyebrow")}</span><strong>{t(`joint.${selected}` as TranslationKey)}</strong></div>
+            <div><span className="eyebrow">{t("avatar.eyebrow")}</span><strong>{t(`joint.${selected}` as TranslationKey)}</strong><small>{t("avatar.limits")}</small></div>
             <button className="icon-button" title={t("avatar.reset")} onClick={() => setPose(POSES.neutral!)}><RotateCcw size={17} /></button>
           </div>
           <div className="avatar-stage"><SuitAvatar pose={pose} selected={selected} onSelect={setSelected} /></div>
@@ -281,12 +287,28 @@ function Studio() {
             {Object.keys(POSES).map((name) => <button key={name} className={pose === POSES[name] ? "active" : ""} onClick={() => setPose(POSES[name]!)}>{t(`pose.${name}` as TranslationKey)}</button>)}
           </div>
           <div className="joint-controls">
-            {AXES.map((axis: Axis) => (
-              <label key={axis}><span>{axis}<b>{Math.round(selectedVector[axis])}°</b></span><input type="range" min="-180" max="180" value={selectedVector[axis]} onChange={(event) => setPose((current) => ({
-                ...current,
-                [selected]: { ...selectedVector, [axis]: Number(event.target.value) }
-              }))} /></label>
-            ))}
+            {AXES.map((axis: Axis) => {
+              const [min, max] = JOINT_LIMITS[selected][axis];
+              return (
+                <label key={axis}>
+                  <span>{axis}<b>{Math.round(selectedVector[axis])}°</b></span>
+                  <input
+                    type="range"
+                    min={min}
+                    max={max}
+                    value={selectedVector[axis]}
+                    onChange={(event) => setPose((current) => ({
+                      ...current,
+                      [selected]: {
+                        ...selectedVector,
+                        [axis]: clampJointValue(selected, axis, Number(event.target.value))
+                      }
+                    }))}
+                  />
+                  <small><i>{min}°</i><i>{max}°</i></small>
+                </label>
+              );
+            })}
           </div>
         </section>
         <MappingEditor mappings={mappings} values={valueMap} onChange={setMappings} />
