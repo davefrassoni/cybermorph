@@ -174,7 +174,7 @@ function Studio() {
     () => readStored("cm.serialFormat.v1", "auto")
   );
   const serialSuit = useRef(new WebSerialSuit());
-  const [serialLines, setSerialLines] = useState<SerialMonitorLine[]>([]);
+  const [serialLine, setSerialLine] = useState<SerialMonitorLine | null>(null);
   const serialLineId = useRef(0);
   const [captures, setCaptures] = useState<LabeledCapture[]>(() => readStored("cm.captures.v2", []));
   const [label, setLabel] = useState("reach");
@@ -444,13 +444,13 @@ function Studio() {
             },
             sensorsRef.current.map((sensor) => sensor.id),
             serialFormat,
-            (text, parsed) => {
-              setSerialLines((current) => [...current, {
+            (text, frame) => {
+              setSerialLine({
                 id: ++serialLineId.current,
                 receivedAt: Date.now(),
                 text,
-                parsed
-              }].slice(-200));
+                frame
+              });
             }
           ).catch(() => {
             setSerialConnected(false);
@@ -509,7 +509,7 @@ function Studio() {
           </div>
           </section>
           <SensorManager sensors={sensors} onChange={setSensors} />
-          <SerialMonitor connected={serialConnected} lines={serialLines} onClear={() => setSerialLines([])} />
+          <SerialMonitor connected={serialConnected} lastLine={serialLine} onClear={() => setSerialLine(null)} />
           <CameraPoseTracker onPose={(cameraPose) => {
             if (!movementPlaying) setPose(cameraPose);
           }} />

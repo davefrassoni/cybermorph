@@ -1,23 +1,47 @@
 import { Activity, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { SensorFrame } from "@cybermorph/core";
 import { useI18n } from "./i18n";
 
 export type SerialMonitorLine = {
   id: number;
   receivedAt: number;
   text: string;
-  parsed: boolean;
+  frame: SensorFrame | null;
 };
 
 type Props = {
   connected: boolean;
-  lines: SerialMonitorLine[];
+  lastLine: SerialMonitorLine | null;
   onClear: () => void;
 };
 
-export function SerialMonitor({ connected, lines, onClear }: Props) {
+const channels = [
+  { key: "accel_x", label: "Ax" },
+  { key: "accel_y", label: "Ay" },
+  { key: "accel_z", label: "Az" },
+  { key: "gyro_x", label: "Gx" },
+  { key: "gyro_y", label: "Gy" },
+  { key: "gyro_z", label: "Gz" }
+] as const;
+
+function formatValue(value: number | undefined): string {
+  return Number.isFinite(value) ? Number(value).toFixed(2) : "—";
+}
+
+export function SerialMonitor({ connected, lastLine, onClear }: Props) {
   const { t } = useI18n();
+  const [initialWidth, setInitialWidth] = useState<number>();
+
+  useEffect(() => {
+    if (!lastLine || initialWidth !== undefined) return;
+    // DM Mono at 9px is approximately 5.5px per character. Keep room for the frame metadata.
+    setInitialWidth(Math.min(1080, Math.max(360, Math.ceil(lastLine.text.length * 5.5) + 130)));
+  }, [initialWidth, lastLine]);
+
+  const sensors = Object.entries(lastLine?.frame?.sensors ?? {});
   return (
-    <section className="panel serial-monitor" aria-live="polite">
+    <section className="panel serial-monitor" aria-live="polite" style={initialWidth ? { width: initialWidth } : undefined}>
       <div className="panel-heading">
         <div>
           <span className="eyebrow">USB / ESP32</span>
@@ -31,15 +55,28 @@ export function SerialMonitor({ connected, lines, onClear }: Props) {
         </div>
       </div>
       <p>{t("serial.monitor.description")}</p>
-      <div className="serial-monitor-log" role="log">
-        {!lines.length && <span className="serial-monitor-empty">{t("serial.monitor.empty")}</span>}
-        {lines.map((line) => (
-          <div key={line.id} className={line.parsed ? "valid" : "invalid"}>
-            <time>{new Date(line.receivedAt).toLocaleTimeString()}</time>
-            <i>{line.parsed ? "OK" : "RAW"}</i>
-            <code>{line.text || "∅"}</code>
+      <div className="serial-monitor-data" role="log">
+        {!lastLine && <span className="serial-monitor-empty">{t("serial.monitor.empty")}</span>}
+        {lastLine && <>
+          <div className={lastLine.frame ? "serial-frame valid" : "serial-frame invalid"}>
+            <time>{new Date(lastLine.receivedAt).toLocaleTimeString()}</time>
+            <i>{lastLine.frame ? "OK" : "RAW"}</i>
+            <code title={lastLine.text}>{lastLine.text || "∅"}</code>
           </div>
-        ))}
+          {lastLine.frame ? <div className="serial-sensor-grid">
+            {sensors.map(([sensorId, vector], index) => (
+              <article key={sensorId}>
+                <header><strong>IMU {index + 1}</strong><small>{sensorId}</small></header>
+                <div>
+                  {channels.map((channel) => <span key={channel.key}>
+                    <b>{channel.label}{index + 1}</b>
+                    <i>{formatValue(vector?.[channel.key])}</i>
+                  </span>)}
+                </div>
+              </article>
+            ))}
+          </div> : <span className="serial-monitor-empty">{t("serial.monitor.invalid")}</span>}
+        </>}
       </div>
     </section>
   );
