@@ -11,6 +11,6 @@ export default defineConfig({
   platform: "node",
   sourcemap: true,
   clean: true,
-  external: ["electron"],
+  external: ["electron", "electron-updater"],
   outExtension: () => ({ js: ".cjs" })
 });

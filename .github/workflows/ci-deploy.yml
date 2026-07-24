@@ -41,6 +41,16 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
+      - name: Set rolling desktop version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            $version = "0.2.${{ github.run_number }}"
+          }
+          npm version $version --no-git-tag-version --workspace @cybermorph/desktop
+          "CYBERMORPH_VERSION=$version" >> $env:GITHUB_ENV
       - run: npm run dist:win
       - name: Normalize installer filename
         shell: pwsh
@@ -51,13 +61,43 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cybermorph-windows
-          path: apps/desktop/release/CyberMorph-Setup.exe
+          path: |
+            apps/desktop/release/latest.yml
+            apps/desktop/release/CyberMorph-Setup-*.exe
+            apps/desktop/release/CyberMorph-Setup-*.exe.blockmap
+            apps/desktop/release/CyberMorph-Setup.exe
           if-no-files-found: error
+
+  publish-desktop-update:
+    name: Publish rolling desktop update
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cybermorph-windows
+          path: release
+      - name: Replace rolling update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view desktop-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release delete desktop-latest --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+          fi
+          gh release create desktop-latest release/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "CyberMorph Desktop Update" \
+            --notes "Canal automático de actualización para CyberMorph Studio." \
+            --prerelease
 
   deployment-ready:
     name: Hand off to VPS pull deploy
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [test-web, build-windows]
+    needs: [test-web, build-windows, publish-desktop-update]
     runs-on: ubuntu-latest
     steps:
       - name: Confirm deployment handoff

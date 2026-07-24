@@ -4,3 +4,4 @@ export * from "./gesture.js";
 export * from "./protocol.js";
 export * from "./simulator.js";
 export * from "./biomechanics.js";
+export * from "./intel-hex.js";

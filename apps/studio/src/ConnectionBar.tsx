@@ -1,4 +1,4 @@
-import { Cable, CirclePower, Music2, Usb } from "lucide-react";
+import { Cable, CirclePower, Cpu, Music2, Usb } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "./i18n";
 
@@ -10,6 +10,7 @@ type Props = {
   audioEnabled: boolean;
   onAudio: () => void;
   onSerial: () => void;
+  onFirmware: () => void;
 };
 
 export function ConnectionBar({
@@ -19,11 +20,13 @@ export function ConnectionBar({
   serialMessage,
   audioEnabled,
   onAudio,
-  onSerial
+  onSerial,
+  onFirmware
 }: Props) {
   const { t } = useI18n();
   const [midiOutputs, setMidiOutputs] = useState<MIDIOutput[]>([]);
   const [midiSelected, setMidiSelected] = useState("");
+  const serialSupported = "serial" in navigator;
 
   const connectMidi = async () => {
     const { midiController } = await import("./audio");
@@ -42,11 +45,11 @@ export function ConnectionBar({
     <div className="connection-bar">
       <div className="source-switch">
         <button className={source === "simulator" ? "active" : ""} onClick={() => onSource("simulator")}>{t("source.sim")}</button>
-        <button className={source === "hardware" ? "active" : ""} onClick={() => onSource("hardware")} disabled={!window.cybermorph}>{t("source.suit")}</button>
+        <button className={source === "hardware" ? "active" : ""} onClick={() => onSource("hardware")} disabled={!serialSupported}>{t("source.suit")}</button>
       </div>
       <div className="connection-item">
         <Usb size={16} />
-        {window.cybermorph ? (
+        {serialSupported ? (
           <>
             <button
               className={`compact-button ${serialConnected ? "connected" : ""}`}
@@ -55,8 +58,9 @@ export function ConnectionBar({
               <Cable size={14} /> {serialConnected ? t("serial.disconnect") : t("serial.choose")}
             </button>
           </>
-        ) : <span>{t("serial.desktopRequired")}</span>}
+        ) : <span>{t("serial.unsupported")}</span>}
         <span className={`status-dot ${serialConnected ? "online" : ""}`} title={serialMessage} />
+        <button className="compact-button" onClick={onFirmware}><Cpu size={14} /> {t("firmware.open")}</button>
       </div>
       <div className="connection-item midi">
         <Music2 size={16} />

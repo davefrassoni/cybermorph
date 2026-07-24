@@ -16,6 +16,10 @@ MIDI, sonido y loops. Incluye:
 - **CyberMorph Simulator**: un cuerpo 3D con esqueleto jerárquico y límites
   biomecánicos por articulación para probar los mapeos sin conectar el
   hardware.
+- **Programador USB**: conexión y carga local de firmware para Arduino Uno y
+  Nano con ATmega328P desde Chrome, Edge o la aplicación de escritorio.
+- **Actualizaciones de escritorio**: CyberMorph Studio comprueba el canal
+  publicado en el sitio, descarga nuevas versiones y las instala al reiniciar.
 - **Motor de movimiento compartido**: el simulador web y la aplicación de
   escritorio utilizan el mismo código de normalización, curvas, suavizado y
   clasificación de gestos.
@@ -60,6 +64,11 @@ También se acepta el formato abreviado con arrays:
 Consultar [`docs/arduino-example.ino`](docs/arduino-example.ino) para ver una
 plantilla completa del transmisor.
 
+El panel **Firmware** puede instalar el firmware base o un archivo Intel HEX
+propio directamente por USB. Consultar
+[`docs/firmware-web.md`](docs/firmware-web.md) para conocer las placas
+compatibles y las precauciones de uso.
+
 ## Enrutamiento MIDI
 
 CyberMorph Studio envía mensajes MIDI estándar de Control Change y Note.
@@ -85,8 +94,9 @@ también pueden exportarse como CSV.
 
 El sitio se compila con la ruta base `/cybermorph/`. Cada push a `main` ejecuta
 los tests, compila la web y genera el instalador de Windows como artefacto de
-GitHub Actions. En el VPS, `cybermorph-pull.timer` detecta nuevos commits,
-repite los tests y el build, y publica la web en
+GitHub Actions. También publica el manifiesto y los archivos del canal continuo
+de actualización de escritorio. En el VPS, `cybermorph-pull.timer` detecta
+nuevos commits, repite los tests y el build, y publica la web en
 `/var/www/davefrassoni/cybermorph`.
 
 Consultar [`docs/deployment.md`](docs/deployment.md) para conocer el flujo

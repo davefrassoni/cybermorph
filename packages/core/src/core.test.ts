@@ -4,6 +4,7 @@ import {
   clampJointValue,
   clampPose,
   mapFrame,
+  parseIntelHex,
   parseSensorLine,
   predictGesture,
   trainGestureModel,
@@ -53,6 +54,23 @@ describe("biomechanical limits", () => {
     })).toEqual({
       left_elbow: { pitch: 145, roll: 10, yaw: -80 }
     });
+  });
+});
+
+describe("Intel HEX firmware", () => {
+  const blinkRecord = ":100000000C945C000C946E000C946E000C946E00CA\n:00000001FF";
+
+  it("validates and pads firmware to an AVR flash page", () => {
+    const firmware = parseIntelHex(blinkRecord, 32256);
+    expect(firmware).toHaveLength(128);
+    expect(Array.from(firmware.slice(0, 4))).toEqual([0x0c, 0x94, 0x5c, 0x00]);
+    expect(firmware[127]).toBe(0xff);
+  });
+
+  it("rejects a corrupt firmware checksum", () => {
+    expect(() => parseIntelHex(blinkRecord.replace("CA", "CB"), 32256)).toThrow(
+      "checksum"
+    );
   });
 });
 

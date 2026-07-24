@@ -1,6 +1,6 @@
 {
   "name": "@cybermorph/desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "CyberMorph motion-to-music studio for Windows",
   "author": "CyberMorph contributors",
@@ -14,7 +14,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@cybermorph/core": "0.1.0"
+    "@cybermorph/core": "0.1.0",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",
@@ -29,6 +30,11 @@
   "build": {
     "appId": "com.davefrassoni.cybermorph",
     "productName": "CyberMorph",
+    "electronUpdaterCompatibility": ">=2.16",
+    "publish": {
+      "provider": "generic",
+      "url": "https://davefrassoni.com/cybermorph/downloads/"
+    },
     "copyright": "Copyright © 2026 CyberMorph contributors",
     "directories": {
       "output": "release"

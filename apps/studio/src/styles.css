@@ -87,6 +87,10 @@ a { color: inherit; text-decoration: none; }
 .studio-header { max-width: 1600px; margin: 0 auto 28px; display: flex; align-items: flex-end; justify-content: space-between; }
 .studio-header h2 { margin: 10px 0 0; font-size: clamp(30px,4vw,53px); letter-spacing: -.05em; }
 .studio-header-actions { display: flex; align-items: center; gap: 16px; }
+.update-control { display: flex; align-items: center; gap: 7px; }
+.update-control button { min-height: 32px; display: flex; align-items: center; gap: 7px; padding: 0 10px; color: #8d98a2; border: 1px solid #303a45; background: #090d12; cursor: pointer; font: 8px var(--mono); text-transform: uppercase; }
+.update-control button:disabled { cursor: wait; opacity: .72; }.update-control.ready button { color: #080b0d; border-color: var(--acid); background: var(--acid); }.update-control.error button { color: #ff9aac; border-color: #61303b; }
+.update-control small { color: #4f5963; font: 7px var(--mono); }
 .live-badge { color: #7b8690; font: 9px var(--mono); letter-spacing: .12em; }
 .live-badge i, .prediction-pill i { display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 9px var(--acid); }
 .connection-bar { max-width: 1600px; min-height: 58px; margin: 0 auto 12px; display: flex; align-items: center; gap: 9px; padding: 8px; background: #0d1117; border: 1px solid var(--line); }
@@ -153,6 +157,29 @@ input[type=range] { width: 100%; height: 2px; accent-color: var(--acid); cursor:
 .train-button svg { color: var(--pink); }.train-button span { display: grid; gap: 3px; }.train-button small { color: #64707a; font: 7px var(--mono); }.train-button:disabled { opacity: .35; }
 .dataset-actions { display: flex; gap: 5px; padding: 0 17px; }.dataset-actions button { display: flex; align-items: center; gap: 5px; border: 1px solid #29323b; background: transparent; color: #78838d; height: 29px; padding: 0 7px; font-size: 8px; cursor: pointer; }.dataset-actions button:disabled { opacity: .3; }
 .error-toast { position: fixed; z-index: 20; right: 20px; bottom: 20px; background: #391923; border: 1px solid #ff637d; color: #ffd6dd; padding: 12px 16px; cursor: pointer; }
+.modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(2,4,7,.82); backdrop-filter: blur(8px); }
+.firmware-modal { position: relative; width: min(580px,100%); max-height: calc(100vh - 40px); overflow-y: auto; padding: 30px; color: #dfe5e8; background: #0d1218; border: 1px solid #2b3540; box-shadow: 0 30px 90px rgba(0,0,0,.55); }
+.firmware-modal h2 { margin: 9px 38px 10px 0; font-size: 28px; letter-spacing: -.045em; }
+.firmware-modal > p { margin: 0 0 22px; color: #828d98; font-size: 12px; line-height: 1.7; }
+.modal-close { position: absolute; right: 20px; top: 20px; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #303a45; color: #77828d; background: #090d12; cursor: pointer; }
+.modal-close:disabled { opacity: .35; cursor: not-allowed; }
+.firmware-warning, .firmware-result { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 17px; padding: 12px; color: #ffd28c; border: 1px solid #604a27; background: #211a10; font-size: 11px; line-height: 1.5; }
+.firmware-board { display: grid; gap: 7px; margin-bottom: 15px; color: #68747f; font: 8px var(--mono); text-transform: uppercase; }
+.firmware-board select { height: 40px; padding: 0 11px; color: #dce1e4; border: 1px solid #2a343e; background: #080c11; outline: none; font-size: 11px; }
+.firmware-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.firmware-actions button { min-height: 42px; padding: 0 13px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-size: 10px; font-weight: 600; }
+.firmware-actions button:disabled { opacity: .35; cursor: not-allowed; }
+.firmware-primary { color: #080b0d; border: 0; background: var(--acid); }
+.firmware-secondary { color: #aeb7be; border: 1px solid #303a44; background: #0a0f15; }
+.firmware-progress { margin-top: 18px; }
+.firmware-progress > span { display: flex; justify-content: space-between; margin-bottom: 7px; color: #89939d; font: 8px var(--mono); text-transform: uppercase; }
+.firmware-progress > span i { font-style: normal; }.firmware-progress > span b { color: var(--acid); font-weight: 400; }
+.firmware-progress > div { height: 4px; overflow: hidden; background: #242c35; }.firmware-progress > div i { display: block; height: 100%; background: linear-gradient(90deg,var(--cyan),var(--acid)); transition: width .12s; }
+.firmware-result { margin-top: 18px; margin-bottom: 0; }.firmware-result.success { color: var(--acid); border-color: #455c22; background: #131b0d; }.firmware-result.error { color: #ff9aac; border-color: #61303b; background: #211016; }
+.firmware-result small { display: block; margin-top: 4px; color: #9b6f78; font: 8px var(--mono); }
+.firmware-notes { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.firmware-notes strong { color: #a8b1b8; font: 9px var(--mono); text-transform: uppercase; }.firmware-notes p { color: #65717b; font-size: 10px; line-height: 1.65; }
+.firmware-notes a { display: inline-flex; align-items: center; gap: 6px; color: var(--cyan); font-size: 10px; }
 
 footer { min-height: 150px; padding: 45px 7vw; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); background: #090c10; color: #737d87; }
 footer p { font-size: 11px; } footer > div { display: flex; gap: 25px; } footer > div a { display: flex; align-items: center; gap: 8px; font-size: 10px; }
@@ -169,4 +196,5 @@ footer p { font-size: 11px; } footer > div { display: flex; gap: 25px; } footer 
   .process { padding: 65px 20px; }.process-grid { grid-template-columns: 1fr; }.process-grid article { border-right: 0 !important; border-bottom: 1px solid var(--line) !important; }
   .studio-shell { padding: 62px 10px; }.studio-grid { grid-template-columns: 1fr; }.dataset-panel { grid-column: auto; }.mapping-grid { grid-template-columns: repeat(2,1fr); }.connection-bar { flex-wrap: wrap; }.connection-item.midi { margin-left: 0; }.avatar-stage { height: 480px; }
   footer { flex-direction: column; gap: 25px; text-align: center; }
+  .firmware-modal { padding: 24px 20px; }.firmware-actions { grid-template-columns: 1fr; }
 }

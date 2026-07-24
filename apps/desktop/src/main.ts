@@ -1,9 +1,71 @@
 import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
+import electronUpdater, { type AppUpdater } from "electron-updater";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const currentDir = __dirname;
 let mainWindow: BrowserWindow | null = null;
+let updateCheckActive = false;
+type UpdateState = "idle" | "checking" | "available" | "downloading" | "ready" | "current" | "error";
+type UpdateStatus = {
+  state: UpdateState;
+  currentVersion: string;
+  availableVersion?: string;
+  percent?: number;
+  message?: string;
+};
+let updateStatus: UpdateStatus = { state: "idle", currentVersion: app.getVersion() };
+
+function getAutoUpdater(): AppUpdater {
+  return electronUpdater.autoUpdater;
+}
+
+function publishUpdateStatus(patch: Partial<UpdateStatus>): void {
+  updateStatus = { ...updateStatus, ...patch, currentVersion: app.getVersion() };
+  mainWindow?.webContents.send("update:status", updateStatus);
+}
+
+async function checkForUpdates(): Promise<UpdateStatus> {
+  if (!app.isPackaged) {
+    publishUpdateStatus({ state: "current", message: "Updates are only checked in the installed application." });
+    return updateStatus;
+  }
+  if (updateCheckActive) return updateStatus;
+  updateCheckActive = true;
+  publishUpdateStatus({ state: "checking", percent: undefined, message: undefined });
+  try {
+    await getAutoUpdater().checkForUpdates();
+  } catch (error) {
+    publishUpdateStatus({
+      state: "error",
+      message: error instanceof Error ? error.message : "Update check failed."
+    });
+  } finally {
+    updateCheckActive = false;
+  }
+  return updateStatus;
+}
+
+function configureAutoUpdater(): void {
+  const updater = getAutoUpdater();
+  updater.autoDownload = true;
+  updater.autoInstallOnAppQuit = true;
+  updater.on("update-available", (info) => {
+    publishUpdateStatus({ state: "available", availableVersion: info.version, percent: 0 });
+  });
+  updater.on("update-not-available", () => {
+    publishUpdateStatus({ state: "current", availableVersion: undefined, percent: undefined });
+  });
+  updater.on("download-progress", (progress) => {
+    publishUpdateStatus({ state: "downloading", percent: Math.round(progress.percent) });
+  });
+  updater.on("update-downloaded", (info) => {
+    publishUpdateStatus({ state: "ready", availableVersion: info.version, percent: 100 });
+  });
+  updater.on("error", (error) => {
+    publishUpdateStatus({ state: "error", message: error.message });
+  });
+}
 
 app.commandLine.appendSwitch("enable-features", "WebMidi");
 
@@ -56,6 +118,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  configureAutoUpdater();
   session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
     callback(["midi", "midiSysex", "serial"].includes(String(permission)));
   });
@@ -70,6 +133,7 @@ app.whenReady().then(() => {
     callback(preferred?.portId ?? "");
   });
   createWindow();
+  setTimeout(() => { void checkForUpdates(); }, 5000);
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -80,6 +144,11 @@ app.on("window-all-closed", () => {
 });
 
 ipcMain.handle("app:version", () => app.getVersion());
+ipcMain.handle("update:status", () => updateStatus);
+ipcMain.handle("update:check", () => checkForUpdates());
+ipcMain.handle("update:install", () => {
+  if (updateStatus.state === "ready") getAutoUpdater().quitAndInstall(false, true);
+});
 
 ipcMain.handle("file:save", async (_event, options: { name: string; content: string }) => {
   const result = await dialog.showSaveDialog({

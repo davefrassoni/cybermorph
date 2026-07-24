@@ -37,9 +37,11 @@ import { motionAudio, midiController } from "./audio";
 import { ConnectionBar } from "./ConnectionBar";
 import { DatasetPanel } from "./DatasetPanel";
 import { MappingEditor } from "./MappingEditor";
+import { FirmwareFlasher } from "./FirmwareFlasher";
 import { POSES } from "./poses";
 import { SuitAvatar } from "./SuitAvatar";
 import { WebSerialSuit } from "./serial";
+import { UpdateControl } from "./UpdateControl";
 import {
   LanguageToggle,
   useI18n,
@@ -152,6 +154,7 @@ function Studio() {
   const lastPrediction = useRef("");
   const predictionTick = useRef(0);
   const [error, setError] = useState("");
+  const [firmwareOpen, setFirmwareOpen] = useState(false);
 
   useEffect(() => { poseRef.current = pose; }, [pose]);
   useEffect(() => { mappingsRef.current = mappings; localStorage.setItem("cm.mappings", JSON.stringify(mappings)); }, [mappings]);
@@ -247,6 +250,7 @@ function Studio() {
       <div className="studio-header">
         <div><span className="section-number">{t("studio.eyebrow")}</span><h2>{t("studio.title")}</h2></div>
         <div className="studio-header-actions">
+          <UpdateControl />
           <LanguageToggle compact />
           <div className="live-badge"><i /> {t("studio.engine")}</div>
         </div>
@@ -272,9 +276,19 @@ function Studio() {
             setError(t("error.serial"));
           });
         }
-      }} onAudio={async () => {
+      }} onFirmware={() => setFirmwareOpen(true)} onAudio={async () => {
         try { await motionAudio.start(); setAudioEnabled(true); } catch { setError(t("error.audio")); }
       }} />
+      <FirmwareFlasher
+        open={firmwareOpen}
+        onClose={() => setFirmwareOpen(false)}
+        onBeforeFlash={async () => {
+          await serialSuit.current.disconnect();
+          setSerialConnected(false);
+          setSerialStatus("disconnected");
+          setSource("simulator");
+        }}
+      />
       {error && <button className="error-toast" onClick={() => setError("")}>{error} ×</button>}
       <div className="studio-grid">
         <section className="panel avatar-panel">
