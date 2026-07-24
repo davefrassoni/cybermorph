@@ -41,11 +41,13 @@ export function mapFrame(
 ): MappingOutput[] {
   return mappings.flatMap((mapping) => {
     if (!mapping.enabled) return [];
-    const sensor = frame.sensors[mapping.joint];
+    const sensor = frame.sensors[mapping.sensorId ?? mapping.joint];
     if (!sensor) return [];
+    const input = sensor[mapping.channel ?? mapping.axis];
+    if (typeof input !== "number" || !Number.isFinite(input)) return [];
 
     const raw = normalizeInput(
-      sensor[mapping.axis],
+      input,
       mapping.inputMin,
       mapping.inputMax,
       mapping.invert
@@ -81,13 +83,15 @@ export function mapFrame(
 
 export const DEFAULT_MAPPINGS: MotionMapping[] = [
   {
-    id: "left-elbow-filter",
-    name: "Left elbow → filter",
+    id: "left-hand-filter",
+    name: "Left hand gyro → filter",
     enabled: true,
-    joint: "left_elbow",
+    joint: "left_wrist",
     axis: "pitch",
-    inputMin: -20,
-    inputMax: 130,
+    sensorId: "left_hand",
+    channel: "gyro_x",
+    inputMin: -220,
+    inputMax: 220,
     invert: false,
     curve: "s_curve",
     smoothing: 0.35,
@@ -98,13 +102,15 @@ export const DEFAULT_MAPPINGS: MotionMapping[] = [
     outputMax: 12000
   },
   {
-    id: "right-wrist-cc",
-    name: "Right wrist → CC 1",
+    id: "right-hand-cc",
+    name: "Right hand acceleration → CC 1",
     enabled: true,
     joint: "right_wrist",
     axis: "roll",
-    inputMin: -90,
-    inputMax: 90,
+    sensorId: "right_hand",
+    channel: "accel_y",
+    inputMin: -12,
+    inputMax: 12,
     invert: false,
     curve: "linear",
     smoothing: 0.2,
@@ -115,20 +121,22 @@ export const DEFAULT_MAPPINGS: MotionMapping[] = [
     outputMax: 127
   },
   {
-    id: "chest-volume",
-    name: "Chest twist → volume",
+    id: "right-foot-loop",
+    name: "Right foot acceleration → loop",
     enabled: true,
-    joint: "chest",
-    axis: "yaw",
-    inputMin: -70,
-    inputMax: 70,
+    joint: "right_ankle",
+    axis: "pitch",
+    sensorId: "right_foot",
+    channel: "accel_z",
+    inputMin: 6,
+    inputMax: 20,
     invert: false,
     curve: "logarithmic",
     smoothing: 0.5,
-    target: "volume",
+    target: "loop",
     midiChannel: 1,
     midiControl: 7,
-    outputMin: 0.05,
-    outputMax: 0.9
+    outputMin: 0,
+    outputMax: 127
   }
 ];

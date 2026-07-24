@@ -16,13 +16,33 @@ export const JOINT_IDS = [
 ] as const;
 
 export const AXES = ["pitch", "roll", "yaw"] as const;
+export const IMU_CHANNELS = [
+  "pitch",
+  "roll",
+  "yaw",
+  "accel_x",
+  "accel_y",
+  "accel_z",
+  "gyro_x",
+  "gyro_y",
+  "gyro_z"
+] as const;
 
 export type JointId = (typeof JOINT_IDS)[number];
 export type Axis = (typeof AXES)[number];
-export type SensorVector = Record<Axis, number>;
+export type ImuChannel = (typeof IMU_CHANNELS)[number];
+export type SensorVector = Record<Axis, number> &
+  Partial<Record<Exclude<ImuChannel, Axis>, number>>;
 export type SensorFrame = {
   timestamp: number;
-  sensors: Partial<Record<JointId, SensorVector>>;
+  sensors: Record<string, SensorVector | undefined>;
+};
+
+export type SuitSensor = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  location: JointId;
 };
 
 export type MappingTarget =
@@ -41,6 +61,8 @@ export type MotionMapping = {
   enabled: boolean;
   joint: JointId;
   axis: Axis;
+  sensorId?: string;
+  channel?: ImuChannel;
   inputMin: number;
   inputMax: number;
   invert: boolean;

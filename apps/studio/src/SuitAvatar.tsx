@@ -6,13 +6,15 @@ import {
   clampJointVector,
   type JointId,
   type Pose,
-  type SensorVector
+  type SensorVector,
+  type SuitSensor
 } from "@cybermorph/core";
 
 type Props = {
   pose: Pose;
   selected: JointId;
   onSelect: (joint: JointId) => void;
+  sensors: SuitSensor[];
 };
 
 type JointNodeProps = PropsWithChildren<{
@@ -23,6 +25,7 @@ type JointNodeProps = PropsWithChildren<{
   position?: [number, number, number];
   baseRotation?: [number, number, number];
   markerScale?: number;
+  sensors: SuitSensor[];
 }>;
 
 const ZERO_VECTOR: SensorVector = { pitch: 0, roll: 0, yaw: 0 };
@@ -49,7 +52,17 @@ function localRotation(
   ];
 }
 
-function JointMarker({ active, scale = 1 }: { active: boolean; scale?: number }) {
+function JointMarker({
+  active,
+  scale = 1,
+  sensors
+}: {
+  active: boolean;
+  scale?: number;
+  sensors: SuitSensor[];
+}) {
+  const configured = sensors.length > 0;
+  const online = sensors.some((sensor) => sensor.enabled);
   return (
     <group scale={scale}>
       <mesh>
@@ -70,6 +83,23 @@ function JointMarker({ active, scale = 1 }: { active: boolean; scale?: number })
         <circleGeometry args={[0.035, 18]} />
         <meshBasicMaterial color={active ? "#ffffff" : CYAN} />
       </mesh>
+      {configured && (
+        <group position={[0, 0.03, 0.2]} scale={0.72}>
+          <RoundedBox args={[0.23, 0.16, 0.08]} radius={0.025} smoothness={2}>
+            <meshStandardMaterial
+              color={online ? "#1d2916" : "#24282d"}
+              emissive={online ? ACID : "#000000"}
+              emissiveIntensity={online ? 0.5 : 0}
+              roughness={0.28}
+              metalness={0.82}
+            />
+          </RoundedBox>
+          <mesh position={[0.065, 0, 0.045]}>
+            <circleGeometry args={[0.018, 12]} />
+            <meshBasicMaterial color={online ? ACID : "#69717a"} />
+          </mesh>
+        </group>
+      )}
     </group>
   );
 }
@@ -82,6 +112,7 @@ function JointNode({
   position = [0, 0, 0],
   baseRotation = [0, 0, 0],
   markerScale = 1,
+  sensors,
   children
 }: JointNodeProps) {
   const active = selected === joint;
@@ -94,7 +125,11 @@ function JointNode({
         onSelect(joint);
       }}
     >
-      <JointMarker active={active} scale={markerScale} />
+      <JointMarker
+        active={active}
+        scale={markerScale}
+        sensors={sensors.filter((sensor) => sensor.location === joint)}
+      />
       {children}
     </group>
   );
@@ -185,7 +220,8 @@ function Arm({
   side,
   pose,
   selected,
-  onSelect
+  onSelect,
+  sensors
 }: Props & { side: "left" | "right" }) {
   const shoulder = `${side}_shoulder` as JointId;
   const elbow = `${side}_elbow` as JointId;
@@ -202,6 +238,7 @@ function Arm({
       pose={pose}
       selected={selected}
       onSelect={onSelect}
+      sensors={sensors}
       markerScale={1.08}
     >
       <Limb length={upperLength} radius={0.145} active={selected === shoulder} />
@@ -211,6 +248,7 @@ function Arm({
         pose={pose}
         selected={selected}
         onSelect={onSelect}
+        sensors={sensors}
       >
         <Limb length={forearmLength} radius={0.115} active={selected === elbow} />
         <JointNode
@@ -219,6 +257,7 @@ function Arm({
           pose={pose}
           selected={selected}
           onSelect={onSelect}
+          sensors={sensors}
           markerScale={0.78}
         >
           <Hand active={selected === wrist} />
@@ -232,7 +271,8 @@ function Leg({
   side,
   pose,
   selected,
-  onSelect
+  onSelect,
+  sensors
 }: Props & { side: "left" | "right" }) {
   const hip = `${side}_hip` as JointId;
   const knee = `${side}_knee` as JointId;
@@ -248,6 +288,7 @@ function Leg({
       pose={pose}
       selected={selected}
       onSelect={onSelect}
+      sensors={sensors}
       markerScale={1.08}
     >
       <Limb length={thighLength} radius={0.18} active={selected === hip} />
@@ -257,6 +298,7 @@ function Leg({
         pose={pose}
         selected={selected}
         onSelect={onSelect}
+        sensors={sensors}
         markerScale={1.05}
       >
         <Limb length={shinLength} radius={0.14} active={selected === knee} />
@@ -266,6 +308,7 @@ function Leg({
           pose={pose}
           selected={selected}
           onSelect={onSelect}
+          sensors={sensors}
           markerScale={0.82}
         >
           <Foot active={selected === ankle} />
@@ -346,7 +389,7 @@ function Head({ active }: { active: boolean }) {
   );
 }
 
-function Avatar({ pose, selected, onSelect }: Props) {
+function Avatar({ pose, selected, onSelect, sensors }: Props) {
   return (
     <group position={[0, -0.42, 0]} rotation={[0, 0.18, 0]}>
       <mesh position={[0, 0.22, 0]} scale={[0.58, 0.36, 0.42]} castShadow>
@@ -364,25 +407,27 @@ function Avatar({ pose, selected, onSelect }: Props) {
         pose={pose}
         selected={selected}
         onSelect={onSelect}
+        sensors={sensors}
         markerScale={0.9}
       >
         <Torso active={selected === "chest"} />
-        <Arm side="left" pose={pose} selected={selected} onSelect={onSelect} />
-        <Arm side="right" pose={pose} selected={selected} onSelect={onSelect} />
+        <Arm side="left" pose={pose} selected={selected} onSelect={onSelect} sensors={sensors} />
+        <Arm side="right" pose={pose} selected={selected} onSelect={onSelect} sensors={sensors} />
         <JointNode
           joint="head"
           position={[0, 1.58, 0]}
           pose={pose}
           selected={selected}
           onSelect={onSelect}
+          sensors={sensors}
           markerScale={0.78}
         >
           <Head active={selected === "head"} />
         </JointNode>
       </JointNode>
 
-      <Leg side="left" pose={pose} selected={selected} onSelect={onSelect} />
-      <Leg side="right" pose={pose} selected={selected} onSelect={onSelect} />
+      <Leg side="left" pose={pose} selected={selected} onSelect={onSelect} sensors={sensors} />
+      <Leg side="right" pose={pose} selected={selected} onSelect={onSelect} sensors={sensors} />
     </group>
   );
 }

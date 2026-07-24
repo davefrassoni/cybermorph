@@ -38,8 +38,10 @@ bootloader.
 ## Firmware base
 
 [`arduino-example.ino`](arduino-example.ino) es la fuente del firmware base
-incluido en el sitio. Emite frames JSON compatibles con CyberMorph a 115200
-baudios, pero `readJoint()` devuelve valores neutros. Para un traje real se debe
+incluido en el sitio. Emite las cuatro IMUs iniciales (`left_hand`,
+`right_hand`, `left_foot` y `right_foot`) con orientación, aceleración y
+giroscopio a 115200 baudios, pero `readImu()` devuelve valores neutros. Para un
+traje real se debe
 reemplazar esa función con la lectura del modelo de IMU utilizado, compilar el
 sketch y cargar el `.hex` resultante desde el mismo panel.
 

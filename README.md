@@ -4,8 +4,9 @@
 
 **[Abrir CyberMorph Simulator en davefrassoni.com/cybermorph](https://davefrassoni.com/cybermorph/)**
 
-El simulador web permite mover el traje 3D, configurar mapeos, probar el motor
-de audio y grabar ejemplos de gestos sin conectar ningún Arduino.
+El simulador web permite mover el traje 3D, reproducir bailes, grabar
+movimientos propios, configurar las IMUs, probar el motor de audio y grabar
+ejemplos de gestos sin conectar ningún Arduino.
 
 CyberMorph convierte el movimiento de un traje wearable con Arduino e IMUs en
 MIDI, sonido y loops. Incluye:
@@ -16,6 +17,14 @@ MIDI, sonido y loops. Incluye:
 - **CyberMorph Simulator**: un cuerpo 3D con esqueleto jerárquico y límites
   biomecánicos por articulación para probar los mapeos sin conectar el
   hardware.
+- **Secuenciador corporal**: cuatro bailes originales de prueba y grabación,
+  almacenamiento local, reproducción, importación y exportación de movimientos.
+- **Traje configurable**: cuatro IMUs iniciales en manos y pies, con aceleración
+  y giroscopio XYZ. Cada sensor se puede activar, desactivar, reubicar o
+  eliminar, y se pueden agregar otros.
+- **Referencia por cámara**: seguimiento corporal opcional con MediaPipe para
+  completar el avatar y grabar el esqueleto. El video se procesa localmente y
+  no reemplaza las IMUs que controlan MIDI.
 - **Programador USB**: conexión y carga local de firmware para Arduino Uno y
   Nano con ATmega328P desde Chrome, Edge o la aplicación de escritorio.
 - **Actualizaciones de escritorio**: CyberMorph Studio comprueba el canal
@@ -52,17 +61,41 @@ Enviar un objeto JSON por frame, delimitado por un salto de línea, a 115200
 baudios:
 
 ```json
-{"t":1712345678,"sensors":{"left_elbow":{"pitch":42.1,"roll":-8.4,"yaw":12.0},"right_knee":{"pitch":71.0,"roll":2.0,"yaw":-4.0}}}
+{"t":1712345678,"sensors":{"left_hand":{"pitch":42.1,"roll":-8.4,"yaw":12.0,"accel":[0.4,-1.2,9.7],"gyro":[84.0,-12.5,6.1]},"right_foot":{"pitch":8.0,"roll":2.0,"yaw":-4.0,"accel":[1.1,0.3,12.8],"gyro":[2.0,18.0,-3.0]}}}
 ```
 
-También se acepta el formato abreviado con arrays:
+Para firmware anterior también se acepta el formato abreviado de orientación:
 
 ```json
-{"left_elbow":[42.1,-8.4,12],"right_knee":[71,2,-4]}
+{"left_wrist":[42.1,-8.4,12],"right_ankle":[8,2,-4]}
 ```
+
+Los identificadores (`left_hand`, `right_foot`, etc.) corresponden al campo
+**ID** del panel de sensores. Su ubicación corporal se configura en Studio, por
+lo que una misma placa se puede mover sin cambiar los mapeos. Los campos
+`pitch`, `roll` y `yaw` son opcionales cuando la IMU no ofrece fusión de
+orientación; aceleración y giroscopio se pueden enviar como arrays `accel` y
+`gyro` o como `ax/ay/az` y `gx/gy/gz`.
 
 Consultar [`docs/arduino-example.ino`](docs/arduino-example.ino) para ver una
 plantilla completa del transmisor.
+
+## Movimientos y cámara
+
+El secuenciador incluye Groove lateral, Pulso robot, Onda de mano y Paso con
+patada. Se puede mover el avatar manualmente o activar la cámara, presionar
+**Grabar esqueleto** y guardar la secuencia en el navegador. Las grabaciones se
+pueden reproducir y compartir como JSON.
+
+La cámara requiere permiso explícito y HTTPS en la web. MediaPipe descarga el
+modelo de pose al dispositivo y procesa allí los frames: CyberMorph no guarda
+ni transmite video. Con el traje conectado, su estimación sólo completa el
+avatar y las grabaciones de poses, mientras MIDI y el dataset usan las IMUs
+reales. En modo SIM, la pose de cámara mueve las IMUs virtuales para poder
+probar sonido y aprendizaje sin hardware.
+
+Consultar [`docs/sensores-movimientos-camara.md`](docs/sensores-movimientos-camara.md)
+para conocer el diseño, las limitaciones y el formato de datos.
 
 El panel **Firmware** puede instalar el firmware base o un archivo Intel HEX
 propio directamente por USB. Consultar

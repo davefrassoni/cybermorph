@@ -1,4 +1,4 @@
-import { AXES, JOINT_IDS } from "./types.js";
+import { IMU_CHANNELS } from "./types.js";
 import type {
   FeatureVector,
   GesturePrediction,
@@ -31,14 +31,17 @@ function stats(values: number[]): [number, number, number, number, number] {
 
 export function extractFeatures(frames: SensorFrame[]): FeatureVector {
   const result: FeatureVector = {};
-  for (const joint of JOINT_IDS) {
-    for (const axis of AXES) {
+  const sensorIds = Array.from(
+    new Set(frames.flatMap((frame) => Object.keys(frame.sensors)))
+  ).sort();
+  for (const sensorId of sensorIds) {
+    for (const axis of IMU_CHANNELS) {
       const values = frames
-        .map((frame) => frame.sensors[joint]?.[axis])
+        .map((frame) => frame.sensors[sensorId]?.[axis])
         .filter((value): value is number => Number.isFinite(value));
       if (!values.length) continue;
       const [mean, deviation, range, peak, velocity] = stats(values);
-      const prefix = `${joint}.${axis}`;
+      const prefix = `${sensorId}.${axis}`;
       result[`${prefix}.mean`] = mean;
       result[`${prefix}.std`] = deviation;
       result[`${prefix}.range`] = range;
@@ -147,21 +150,19 @@ export function predictGesture(
 }
 
 export function capturesToCsv(captures: LabeledCapture[]): string {
-  const header = ["capture_id", "label", "timestamp", "joint", ...AXES];
+  const header = ["capture_id", "label", "timestamp", "sensor", ...IMU_CHANNELS];
   const rows = [header.map(csvCell).join(",")];
   for (const capture of captures) {
     for (const frame of capture.frames) {
-      for (const [joint, sensor] of Object.entries(frame.sensors)) {
+      for (const [sensorId, sensor] of Object.entries(frame.sensors)) {
         if (!sensor) continue;
         rows.push(
           [
             capture.id,
             capture.label,
             frame.timestamp,
-            joint,
-            sensor.pitch,
-            sensor.roll,
-            sensor.yaw
+            sensorId,
+            ...IMU_CHANNELS.map((channel) => sensor[channel] ?? "")
           ]
             .map(csvCell)
             .join(",")

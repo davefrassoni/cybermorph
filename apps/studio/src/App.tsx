@@ -15,22 +15,31 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AXES,
   DEFAULT_MAPPINGS,
+  DEFAULT_SENSORS,
   JOINT_LIMITS,
+  applySensorReadingsToPose,
   capturesToCsv,
+  clampPose,
   clampJointValue,
   clampJointVector,
   mapFrame,
-  poseToFrame,
   predictGesture,
+  sampleMovement,
+  selectConfiguredSensors,
+  simulateImuFrame,
   trainGestureModel,
   type Axis,
   type GesturePrediction,
   type JointId,
   type LabeledCapture,
   type MappingOutput,
+  type MovementClip,
+  type MovementKeyframe,
   type MotionMapping,
   type Pose,
   type SensorFrame,
+  type SimulatorMotionState,
+  type SuitSensor,
   type TrainedGestureModel
 } from "@cybermorph/core";
 import { motionAudio, midiController } from "./audio";
@@ -38,7 +47,10 @@ import { ConnectionBar } from "./ConnectionBar";
 import { DatasetPanel } from "./DatasetPanel";
 import { MappingEditor } from "./MappingEditor";
 import { FirmwareFlasher } from "./FirmwareFlasher";
+import { CameraPoseTracker } from "./CameraPoseTracker";
+import { MovementPanel } from "./MovementPanel";
 import { POSES } from "./poses";
+import { SensorManager } from "./SensorManager";
 import { SuitAvatar } from "./SuitAvatar";
 import { WebSerialSuit } from "./serial";
 import { UpdateControl } from "./UpdateControl";
@@ -144,8 +156,12 @@ function Studio() {
   const [source, setSource] = useState<"simulator" | "hardware">("simulator");
   const [pose, setPose] = useState<Pose>(POSES.neutral!);
   const poseRef = useRef(pose);
+  const sourceRef = useRef(source);
+  const [sensors, setSensors] = useState<SuitSensor[]>(() => readStored("cm.sensors.v1", DEFAULT_SENSORS));
+  const sensorsRef = useRef(sensors);
+  const simulatorMotion = useRef<SimulatorMotionState | undefined>(undefined);
   const [selected, setSelected] = useState<JointId>("left_elbow");
-  const [mappings, setMappings] = useState<MotionMapping[]>(() => readStored("cm.mappings", DEFAULT_MAPPINGS));
+  const [mappings, setMappings] = useState<MotionMapping[]>(() => readStored("cm.mappings.v2", DEFAULT_MAPPINGS));
   const mappingsRef = useRef(mappings);
   const [outputs, setOutputs] = useState<MappingOutput[]>([]);
   const smoothingValues = useRef(new Map<string, number>());
@@ -153,11 +169,11 @@ function Studio() {
   const [serialConnected, setSerialConnected] = useState(false);
   const [serialStatus, setSerialStatus] = useState<"notConnected" | "connected" | "disconnected">("notConnected");
   const serialSuit = useRef(new WebSerialSuit());
-  const [captures, setCaptures] = useState<LabeledCapture[]>(() => readStored("cm.captures", []));
+  const [captures, setCaptures] = useState<LabeledCapture[]>(() => readStored("cm.captures.v2", []));
   const [label, setLabel] = useState("reach");
   const [recording, setRecording] = useState(false);
   const recordingFrames = useRef<SensorFrame[]>([]);
-  const [model, setModel] = useState<TrainedGestureModel | null>(() => readStored("cm.model", null));
+  const [model, setModel] = useState<TrainedGestureModel | null>(() => readStored("cm.model.v2", null));
   const modelRef = useRef(model);
   const gestureWindow = useRef<SensorFrame[]>([]);
   const [prediction, setPrediction] = useState<GesturePrediction | null>(null);
@@ -165,13 +181,31 @@ function Studio() {
   const predictionTick = useRef(0);
   const [error, setError] = useState("");
   const [firmwareOpen, setFirmwareOpen] = useState(false);
+  const [movements, setMovements] = useState<MovementClip[]>(() => readStored("cm.movements.v1", []));
+  const [movementName, setMovementName] = useState(() => t("movement.defaultName"));
+  const [movementRecording, setMovementRecording] = useState(false);
+  const movementRecordingRef = useRef(false);
+  const movementStartedAt = useRef(0);
+  const movementFrames = useRef<MovementKeyframe[]>([]);
+  const [activeMovement, setActiveMovement] = useState<MovementClip | null>(null);
+  const [movementPlaying, setMovementPlaying] = useState(false);
 
   useEffect(() => { poseRef.current = pose; }, [pose]);
-  useEffect(() => { mappingsRef.current = mappings; localStorage.setItem("cm.mappings", JSON.stringify(mappings)); }, [mappings]);
-  useEffect(() => { localStorage.setItem("cm.captures", JSON.stringify(captures)); }, [captures]);
-  useEffect(() => { modelRef.current = model; if (model) localStorage.setItem("cm.model", JSON.stringify(model)); }, [model]);
+  useEffect(() => { sourceRef.current = source; }, [source]);
+  useEffect(() => {
+    sensorsRef.current = sensors;
+    localStorage.setItem("cm.sensors.v1", JSON.stringify(sensors));
+  }, [sensors]);
+  useEffect(() => { mappingsRef.current = mappings; localStorage.setItem("cm.mappings.v2", JSON.stringify(mappings)); }, [mappings]);
+  useEffect(() => { localStorage.setItem("cm.captures.v2", JSON.stringify(captures)); }, [captures]);
+  useEffect(() => { modelRef.current = model; if (model) localStorage.setItem("cm.model.v2", JSON.stringify(model)); }, [model]);
+  useEffect(() => { localStorage.setItem("cm.movements.v1", JSON.stringify(movements)); }, [movements]);
 
-  const processFrame = useCallback((frame: SensorFrame) => {
+  const processFrame = useCallback((incoming: SensorFrame) => {
+    const frame = selectConfiguredSensors(incoming, sensorsRef.current);
+    if (sourceRef.current === "hardware") {
+      setPose((current) => clampPose(applySensorReadingsToPose(current, incoming, sensorsRef.current)));
+    }
     const mapped = mapFrame(frame, mappingsRef.current, smoothingValues.current);
     setOutputs(mapped);
     motionAudio.apply(mapped);
@@ -196,9 +230,50 @@ function Studio() {
 
   useEffect(() => {
     if (source !== "simulator") return;
-    const interval = window.setInterval(() => processFrame(poseToFrame(poseRef.current)), 33);
+    const interval = window.setInterval(() => {
+      const now = performance.now();
+      const simulated = simulateImuFrame(
+        poseRef.current,
+        sensorsRef.current,
+        simulatorMotion.current,
+        now
+      );
+      simulatorMotion.current = simulated.state;
+      processFrame(simulated.frame);
+    }, 33);
     return () => window.clearInterval(interval);
   }, [processFrame, source]);
+
+  useEffect(() => {
+    if (!movementRecording) return;
+    const interval = window.setInterval(() => {
+      if (!movementRecordingRef.current || movementFrames.current.length >= 1800) return;
+      const now = performance.now();
+      movementFrames.current.push({
+        at: now - movementStartedAt.current,
+        pose: structuredClone(poseRef.current)
+      });
+    }, 66);
+    return () => window.clearInterval(interval);
+  }, [movementRecording]);
+
+  useEffect(() => {
+    if (!movementPlaying || !activeMovement) return;
+    const started = performance.now();
+    let animation = 0;
+    const animate = (now: number) => {
+      const elapsed = now - started;
+      setPose(clampPose(sampleMovement(activeMovement, elapsed)));
+      if (!activeMovement.loop && elapsed >= activeMovement.duration) {
+        setMovementPlaying(false);
+        setActiveMovement(null);
+        return;
+      }
+      animation = requestAnimationFrame(animate);
+    };
+    animation = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animation);
+  }, [activeMovement, movementPlaying]);
 
   useEffect(() => () => { void serialSuit.current.disconnect(); }, []);
 
@@ -255,6 +330,85 @@ function Studio() {
     }
   };
 
+  const startMovementRecording = () => {
+    setMovementPlaying(false);
+    setActiveMovement(null);
+    const now = performance.now();
+    movementStartedAt.current = now;
+    movementFrames.current = [{ at: 0, pose: structuredClone(poseRef.current) }];
+    movementRecordingRef.current = true;
+    setMovementRecording(true);
+  };
+
+  const stopMovementRecording = () => {
+    const now = performance.now();
+    movementRecordingRef.current = false;
+    setMovementRecording(false);
+    const frames = [...movementFrames.current, {
+      at: now - movementStartedAt.current,
+      pose: structuredClone(poseRef.current)
+    }];
+    movementFrames.current = [];
+    if (frames.length < 2) return;
+    setMovements((current) => [...current, {
+      id: crypto.randomUUID(),
+      name: movementName.trim(),
+      createdAt: new Date().toISOString(),
+      duration: Math.max(100, frames.at(-1)?.at ?? 100),
+      loop: false,
+      source: "recorded",
+      keyframes: frames
+    }]);
+  };
+
+  const importMovements = async () => {
+    const load = async (content: string) => {
+      const parsed = JSON.parse(content) as { movements?: MovementClip[] };
+      const valid = (parsed.movements ?? []).filter((clip) =>
+        clip &&
+        typeof clip.id === "string" &&
+        typeof clip.name === "string" &&
+        Number.isFinite(clip.duration) &&
+        Array.isArray(clip.keyframes) &&
+        clip.keyframes.length >= 2 &&
+        clip.keyframes.length <= 5000 &&
+        clip.keyframes.every((keyframe) =>
+          Number.isFinite(keyframe.at) &&
+          typeof keyframe.pose === "object" &&
+          keyframe.pose !== null
+        )
+      ).slice(0, 100).map((clip) => ({
+        ...clip,
+        id: crypto.randomUUID(),
+        source: "recorded" as const,
+        loop: Boolean(clip.loop)
+      }));
+      if (!valid.length) throw new Error("No valid movements");
+      setMovements((current) => [...current, ...valid]);
+    };
+    try {
+      if (window.cybermorph) {
+        const file = await window.cybermorph.loadFile();
+        if (file) await load(file.content);
+      } else {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".json";
+        input.onchange = async () => {
+          try {
+            const file = input.files?.[0];
+            if (file) await load(await file.text());
+          } catch {
+            setError(t("error.movementImport"));
+          }
+        };
+        input.click();
+      }
+    } catch {
+      setError(t("error.movementImport"));
+    }
+  };
+
   return (
     <section className="studio-shell" id="studio">
       <div className="studio-header">
@@ -301,12 +455,13 @@ function Studio() {
       />
       {error && <button className="error-toast" onClick={() => setError("")}>{error} ×</button>}
       <div className="studio-grid">
-        <section className="panel avatar-panel">
+        <div className="studio-column">
+          <section className="panel avatar-panel">
           <div className="avatar-toolbar">
             <div><span className="eyebrow">{t("avatar.eyebrow")}</span><strong>{t(`joint.${selected}` as TranslationKey)}</strong><small>{t("avatar.limits")}</small></div>
             <button className="icon-button" title={t("avatar.reset")} onClick={() => setPose(POSES.neutral!)}><RotateCcw size={17} /></button>
           </div>
-          <div className="avatar-stage"><SuitAvatar pose={pose} selected={selected} onSelect={setSelected} /></div>
+          <div className="avatar-stage"><SuitAvatar pose={pose} selected={selected} onSelect={setSelected} sensors={sensors} /></div>
           <div className="pose-presets">
             {Object.keys(POSES).map((name) => <button key={name} className={pose === POSES[name] ? "active" : ""} onClick={() => setPose(POSES[name]!)}>{t(`pose.${name}` as TranslationKey)}</button>)}
           </div>
@@ -334,9 +489,40 @@ function Studio() {
               );
             })}
           </div>
-        </section>
-        <MappingEditor mappings={mappings} values={valueMap} onChange={setMappings} />
-        <DatasetPanel
+          </section>
+          <SensorManager sensors={sensors} onChange={setSensors} />
+          <CameraPoseTracker onPose={(cameraPose) => {
+            if (!movementPlaying) setPose(cameraPose);
+          }} />
+        </div>
+        <div className="studio-column">
+          <MappingEditor mappings={mappings} sensors={sensors} values={valueMap} onChange={setMappings} />
+          <MovementPanel
+            recordings={movements}
+            activeId={activeMovement?.id ?? ""}
+            playing={movementPlaying}
+            recording={movementRecording}
+            recordingName={movementName}
+            onRecordingName={setMovementName}
+            onPlay={(clip) => {
+              if (movementRecordingRef.current) stopMovementRecording();
+              setActiveMovement(clip);
+              setMovementPlaying(true);
+            }}
+            onStop={() => {
+              setMovementPlaying(false);
+              setActiveMovement(null);
+            }}
+            onRecord={startMovementRecording}
+            onStopRecording={stopMovementRecording}
+            onDelete={(id) => setMovements((current) => current.filter((clip) => clip.id !== id))}
+            onExport={() => void saveData("cybermorph-movimientos.json", JSON.stringify({
+              version: 1,
+              movements
+            }, null, 2))}
+            onImport={() => void importMovements()}
+          />
+          <DatasetPanel
           captures={captures}
           recording={recording}
           label={label}
@@ -353,13 +539,14 @@ function Studio() {
             try { setModel(trainGestureModel(captures)); setError(""); }
             catch { setError(t("error.training")); }
           }}
-          onClear={() => { setCaptures([]); setModel(null); localStorage.removeItem("cm.model"); }}
+          onClear={() => { setCaptures([]); setModel(null); localStorage.removeItem("cm.model.v2"); }}
           onExport={(format) => {
             const content = format === "csv" ? capturesToCsv(captures) : JSON.stringify({ version: 1, captures, model }, null, 2);
             void saveData(`cybermorph-dataset.${format}`, content);
           }}
           onImport={() => void importDataset()}
-        />
+          />
+        </div>
       </div>
     </section>
   );

@@ -120,10 +120,10 @@ function createWindow(): void {
 app.whenReady().then(() => {
   configureAutoUpdater();
   session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
-    callback(["midi", "midiSysex", "serial"].includes(String(permission)));
+    callback(["media", "midi", "midiSysex", "serial"].includes(String(permission)));
   });
   session.defaultSession.setDevicePermissionHandler((details) =>
-    ["serial", "midi"].includes(String(details.deviceType))
+    ["media", "serial", "midi"].includes(String(details.deviceType))
   );
   session.defaultSession.on("select-serial-port", (event, portList, _webContents, callback) => {
     event.preventDefault();
