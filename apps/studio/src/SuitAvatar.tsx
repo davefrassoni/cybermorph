@@ -34,6 +34,60 @@ const SUIT_LIGHT = "#1b2530";
 const ACID = "#c9ff3d";
 const CYAN = "#66f4db";
 const PINK = "#ff52d7";
+const FOX_ORANGE = "#f26a2e";
+const FOX_CREAM = "#ffe4bf";
+const FOX_DARK = "#160d12";
+
+function makeShape(points: Array<[number, number]>): THREE.Shape {
+  const shape = new THREE.Shape();
+  points.forEach(([x, y], index) => {
+    if (index === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  });
+  shape.closePath();
+  return shape;
+}
+
+const FOX_MASK_SHAPE = makeShape([
+  [-0.28, 0.16],
+  [-0.34, 0.48],
+  [-0.12, 0.35],
+  [0, 0.39],
+  [0.12, 0.35],
+  [0.34, 0.48],
+  [0.28, 0.16],
+  [0.21, -0.12],
+  [0, -0.34],
+  [-0.21, -0.12]
+]);
+
+const LEFT_EYE_SHAPE = makeShape([
+  [-0.2, 0.12],
+  [-0.04, 0.08],
+  [-0.08, -0.01],
+  [-0.21, 0.04]
+]);
+
+const RIGHT_EYE_SHAPE = makeShape([
+  [0.2, 0.12],
+  [0.04, 0.08],
+  [0.08, -0.01],
+  [0.21, 0.04]
+]);
+
+const LEFT_CHEEK_SHAPE = makeShape([
+  [-0.25, 0],
+  [-0.04, -0.08],
+  [0, -0.27],
+  [-0.2, -0.12]
+]);
+
+const RIGHT_CHEEK_SHAPE = makeShape([
+  [0.25, 0],
+  [0.04, -0.08],
+  [0, -0.27],
+  [0.2, -0.12]
+]);
 
 function radians(value: number): number {
   return THREE.MathUtils.degToRad(value);
@@ -226,7 +280,8 @@ function Arm({
   const shoulder = `${side}_shoulder` as JointId;
   const elbow = `${side}_elbow` as JointId;
   const wrist = `${side}_wrist` as JointId;
-  const direction = side === "left" ? -1 : 1;
+  // The avatar faces +Z (towards the camera), so anatomical left is +X.
+  const direction = side === "left" ? 1 : -1;
   const upperLength = 0.76;
   const forearmLength = 0.68;
 
@@ -277,7 +332,8 @@ function Leg({
   const hip = `${side}_hip` as JointId;
   const knee = `${side}_knee` as JointId;
   const ankle = `${side}_ankle` as JointId;
-  const direction = side === "left" ? -1 : 1;
+  // The avatar faces +Z (towards the camera), so anatomical left is +X.
+  const direction = side === "left" ? 1 : -1;
   const thighLength = 0.92;
   const shinLength = 0.86;
 
@@ -364,26 +420,75 @@ function Head({ active }: { active: boolean }) {
       <mesh castShadow scale={[0.92, 1.06, 0.94]}>
         <sphereGeometry args={[0.31, 30, 24]} />
         <meshStandardMaterial
-          color={active ? "#33451a" : "#151e28"}
+          color={active ? "#33451a" : FOX_DARK}
           emissive={active ? ACID : "#000000"}
           emissiveIntensity={active ? 0.14 : 0}
           metalness={0.68}
           roughness={0.3}
         />
       </mesh>
-      <mesh position={[0, 0.025, 0.285]} scale={[0.88, 0.42, 0.18]}>
-        <sphereGeometry args={[0.28, 24, 16]} />
+
+      <group position={[0, 0.015, 0.303]} scale={0.82}>
+        <mesh castShadow>
+          <shapeGeometry args={[FOX_MASK_SHAPE]} />
+          <meshStandardMaterial
+            color={FOX_ORANGE}
+            emissive={active ? ACID : "#3a0d02"}
+            emissiveIntensity={active ? 0.18 : 0.08}
+            metalness={0.48}
+            roughness={0.36}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+
+        <mesh position={[0, 0, 0.008]}>
+          <shapeGeometry args={[LEFT_CHEEK_SHAPE]} />
+          <meshStandardMaterial color={FOX_CREAM} metalness={0.24} roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0, 0.008]}>
+          <shapeGeometry args={[RIGHT_CHEEK_SHAPE]} />
+          <meshStandardMaterial color={FOX_CREAM} metalness={0.24} roughness={0.5} />
+        </mesh>
+
+        <mesh position={[0, 0, 0.015]}>
+          <shapeGeometry args={[LEFT_EYE_SHAPE]} />
+          <meshBasicMaterial color={active ? "#ffffff" : CYAN} />
+        </mesh>
+        <mesh position={[0, 0, 0.015]}>
+          <shapeGeometry args={[RIGHT_EYE_SHAPE]} />
+          <meshBasicMaterial color={active ? "#ffffff" : CYAN} />
+        </mesh>
+
+        <mesh position={[0, -0.25, 0.022]} rotation={[0, 0, Math.PI]}>
+          <coneGeometry args={[0.055, 0.075, 3]} />
+          <meshStandardMaterial
+            color={FOX_DARK}
+            emissive={PINK}
+            emissiveIntensity={0.22}
+            metalness={0.75}
+            roughness={0.25}
+          />
+        </mesh>
+
+        <mesh position={[-0.245, 0.355, 0.012]} rotation={[0, 0, -0.2]} scale={[0.55, 1, 1]}>
+          <coneGeometry args={[0.09, 0.21, 3]} />
+          <meshStandardMaterial color={FOX_DARK} emissive={PINK} emissiveIntensity={0.08} />
+        </mesh>
+        <mesh position={[0.245, 0.355, 0.012]} rotation={[0, 0, 0.2]} scale={[0.55, 1, 1]}>
+          <coneGeometry args={[0.09, 0.21, 3]} />
+          <meshStandardMaterial color={FOX_DARK} emissive={PINK} emissiveIntensity={0.08} />
+        </mesh>
+      </group>
+
+      <mesh position={[0, -0.13, 0.314]} scale={[0.16, 0.1, 0.08]}>
+        <sphereGeometry args={[0.28, 16, 12]} />
         <meshStandardMaterial
-          color="#071016"
-          emissive={CYAN}
-          emissiveIntensity={0.14}
-          metalness={0.9}
-          roughness={0.12}
+          color={FOX_CREAM}
+          emissive={FOX_ORANGE}
+          emissiveIntensity={0.05}
+          metalness={0.25}
+          roughness={0.55}
         />
-      </mesh>
-      <mesh position={[0, 0.04, 0.342]} scale={[1, 0.55, 1]}>
-        <torusGeometry args={[0.115, 0.012, 8, 28, Math.PI]} />
-        <meshBasicMaterial color={active ? "#ffffff" : CYAN} />
       </mesh>
     </group>
   );

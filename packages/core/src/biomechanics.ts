@@ -11,6 +11,12 @@ export type JointLimits = Record<Axis, JointRange>;
  * Son límites de movimiento local, no límites para los datos crudos de los
  * sensores. De esta forma una IMU puede seguir entregando su orientación
  * completa mientras el gemelo digital evita poses anatómicamente imposibles.
+ *
+ * En el avatar, pitch negativo desplaza un miembro hacia delante. Como el
+ * cuerpo mira hacia +Z, roll positivo separa el lado izquierdo del torso y
+ * roll negativo separa el derecho. La flexión del codo es por tanto negativa,
+ * mientras que la de la rodilla es positiva porque la pierna inferior se
+ * pliega hacia atrás.
  */
 export const JOINT_LIMITS: Record<JointId, JointLimits> = {
   head: {
@@ -19,7 +25,7 @@ export const JOINT_LIMITS: Record<JointId, JointLimits> = {
     yaw: [-80, 80]
   },
   chest: {
-    pitch: [-30, 45],
+    pitch: [-45, 30],
     roll: [-30, 30],
     yaw: [-45, 45]
   },
@@ -34,13 +40,13 @@ export const JOINT_LIMITS: Record<JointId, JointLimits> = {
     yaw: [-90, 90]
   },
   left_elbow: {
-    pitch: [0, 145],
-    roll: [-10, 10],
+    pitch: [-145, 0],
+    roll: [0, 0],
     yaw: [-80, 80]
   },
   right_elbow: {
-    pitch: [0, 145],
-    roll: [-10, 10],
+    pitch: [-145, 0],
+    roll: [0, 0],
     yaw: [-80, 80]
   },
   left_wrist: {
@@ -55,22 +61,22 @@ export const JOINT_LIMITS: Record<JointId, JointLimits> = {
   },
   left_hip: {
     pitch: [-120, 30],
-    roll: [-45, 25],
+    roll: [-25, 45],
     yaw: [-45, 45]
   },
   right_hip: {
     pitch: [-120, 30],
-    roll: [-25, 45],
+    roll: [-45, 25],
     yaw: [-45, 45]
   },
   left_knee: {
     pitch: [0, 135],
-    roll: [-5, 5],
+    roll: [0, 0],
     yaw: [-10, 10]
   },
   right_knee: {
     pitch: [0, 135],
-    roll: [-5, 5],
+    roll: [0, 0],
     yaw: [-10, 10]
   },
   left_ankle: {

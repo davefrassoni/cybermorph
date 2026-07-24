@@ -87,17 +87,30 @@ describe("sensor configuration", () => {
 });
 
 describe("biomechanical limits", () => {
-  it("prevents impossible forearm and knee rotations", () => {
-    expect(clampJointValue("left_elbow", "pitch", 180)).toBe(145);
-    expect(clampJointValue("right_elbow", "roll", -180)).toBe(-10);
+  it("allows elbows to flex forward but never backwards", () => {
+    expect(clampJointValue("left_elbow", "pitch", -180)).toBe(-145);
+    expect(clampJointValue("left_elbow", "pitch", 40)).toBe(0);
+    expect(clampJointValue("right_elbow", "roll", -180)).toBe(0);
+  });
+
+  it("allows knees to flex backwards but never forwards", () => {
     expect(clampJointValue("left_knee", "pitch", -40)).toBe(0);
+    expect(clampJointValue("right_knee", "pitch", 180)).toBe(135);
+    expect(clampJointValue("left_knee", "roll", 30)).toBe(0);
+  });
+
+  it("mirrors shoulder abduction away from the torso", () => {
+    expect(clampJointValue("left_shoulder", "roll", 180)).toBe(130);
+    expect(clampJointValue("left_shoulder", "roll", -90)).toBe(-40);
+    expect(clampJointValue("right_shoulder", "roll", -180)).toBe(-130);
+    expect(clampJointValue("right_shoulder", "roll", 90)).toBe(40);
   });
 
   it("clamps a pose without adding absent joints", () => {
     expect(clampPose({
-      left_elbow: { pitch: 190, roll: 40, yaw: -120 }
+      left_elbow: { pitch: -190, roll: 40, yaw: -120 }
     })).toEqual({
-      left_elbow: { pitch: 145, roll: 10, yaw: -80 }
+      left_elbow: { pitch: -145, roll: 0, yaw: -80 }
     });
   });
 });
