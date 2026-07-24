@@ -20,6 +20,12 @@ const DEFAULT_LEGACY_SENSOR_IDS = [
   "left_foot",
   "right_foot"
 ];
+const LEGACY_PD_SENSOR_ORDER = [
+  "left_foot",
+  "left_hand",
+  "right_hand",
+  "right_foot"
+];
 const ACCEL_GYRO_CHANNELS: ImuChannel[] = [
   "accel_x",
   "accel_y",
@@ -135,10 +141,10 @@ function parseLegacySensorLine(
   const values = atoms.map(Number);
   if (!values.every(Number.isFinite)) return null;
 
-  const configuredSensorIds = (options.sensorIds?.length
+  const configuredSensorIds = orderLegacySensorIds((options.sensorIds?.length
     ? options.sensorIds
     : DEFAULT_LEGACY_SENSOR_IDS
-  ).slice(0, 32);
+  ).slice(0, 32));
   if (!configuredSensorIds.length) return null;
   const allowedChannelCounts = [3, 6, 8, 9];
   const exactChannelCount = values.length / configuredSensorIds.length;
@@ -176,4 +182,10 @@ function parseLegacySensorLine(
   return Object.keys(sensors).length
     ? { timestamp: receivedAt, sensors }
     : null;
+}
+
+function orderLegacySensorIds(sensorIds: string[]): string[] {
+  const known = LEGACY_PD_SENSOR_ORDER.filter((id) => sensorIds.includes(id));
+  const remaining = sensorIds.filter((id) => !LEGACY_PD_SENSOR_ORDER.includes(id));
+  return [...known, ...remaining];
 }

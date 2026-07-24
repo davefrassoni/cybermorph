@@ -41,7 +41,7 @@ describe("sensor protocol", () => {
     const parsed = parseSensorLine(
       "list 1 2 3 4 5 6 7 8  11 12 13 14 15 16 17 18  21 22 23 24 25 26 27 28  31 32 33 34 35 36 37 38;"
     );
-    expect(parsed?.sensors.left_hand).toMatchObject({
+    expect(parsed?.sensors.left_foot).toMatchObject({
       accel_x: 1,
       accel_y: 2,
       accel_z: 3,
@@ -51,6 +51,9 @@ describe("sensor protocol", () => {
       pitch: 7,
       roll: 8
     });
+    expect(parsed?.sensors.left_hand?.accel_x).toBe(11);
+    expect(parsed?.sensors.right_hand?.accel_x).toBe(21);
+    expect(parsed?.sensors.right_foot?.accel_x).toBe(31);
     expect(parsed?.sensors.right_foot?.gyro_z).toBe(36);
   });
 

@@ -90,9 +90,10 @@ AX AY AZ GX GY GZ pitch roll  AX AY AZ GX GY GZ pitch roll  ...
 El selector junto al botón **Elegir puerto serial** permite usar detección
 automática, forzar JSON o elegir si cada bloque de Pure Data comienza con
 aceleración (`AX`) o giroscopio (`GX`). También se detectan listas de 24 valores
-(seis por IMU) y 36 valores (nueve por IMU). El orden de los bloques sigue el
-orden visible del panel **Sensores IMU**, incluidos los sensores desactivados,
-para no desplazar accidentalmente los datos restantes.
+(seis por IMU) y 36 valores (nueve por IMU). El perfil del patch conserva su
+orden original: `MPU2` pie izquierdo, `MPU1` mano izquierda, `MPU4` mano
+derecha y `MPU3` pie derecho. Los sensores adicionales se agregan después de
+esos cuatro sin alterar sus posiciones.
 
 Consultar [`docs/arduino-example.ino`](docs/arduino-example.ino) para ver una
 plantilla completa del transmisor.

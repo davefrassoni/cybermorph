@@ -30,8 +30,15 @@ cada biblioteca y calibración.
 
 La entrada serial acepta directamente la lista numérica producida por el
 subpatch `pd 32serial` y su `unpack` de 32 salidas. Cada salto de línea representa
-un frame completo y los valores se dividen en cuatro bloques de ocho, siguiendo
-el orden de los sensores del panel.
+un frame completo y los valores se dividen en cuatro bloques de ocho con el
+orden observado en el patch:
+
+| Bloque serial | Subpatch | Sensor CyberMorph |
+| --- | --- | --- |
+| 1 | `send-mpu2` | `left_foot` |
+| 2 | `send-mpu1` | `left_hand` |
+| 3 | `send-mpu4` | `right_hand` |
+| 4 | `send-mpu3` | `right_foot` |
 
 El perfil **Pure Data · AX primero** usa
 `AX AY AZ GX GY GZ pitch roll`; **Pure Data · GX primero** invierte los dos
@@ -42,6 +49,11 @@ orientación completa) y el prefijo opcional `list` de Pure Data.
 Es importante que Arduino termine cada frame con `\n` o `\r\n`. Los mensajes
 `open`, `close` y `devices` pertenecen al control de `[comport]` dentro de Pure
 Data y no deben ser enviados por Arduino.
+
+Los subpatches `BRAZO_IZQ`, `BRAZO_DER`, `PIER_IZQ` y `PIE_DER` equivalen a
+seleccionar esos cuatro sensores en la matriz de mapeos. La cadena
+`aNotes → makenote → noteout` se reproduce eligiendo **Nota MIDI** como función,
+configurando número de nota, canal y rango de activación desde CyberMorph.
 
 ## Simulación y movimientos
 
