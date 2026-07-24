@@ -61,13 +61,25 @@ export function applySensorReadingsToPose(
     if (!sensor.enabled) continue;
     const reading = frame.sensors[sensor.id] ?? frame.sensors[sensor.location];
     if (!reading) continue;
-    next[sensor.location] = {
-      pitch: reading.pitch,
-      roll: reading.roll,
-      yaw: reading.yaw
-    };
+    next[sensor.location] = orientationFromReading(reading);
   }
   return next;
+}
+
+function orientationFromReading(reading: SensorVector): SensorVector {
+  const hasExplicitOrientation = Math.abs(reading.pitch) > 0.001 ||
+    Math.abs(reading.roll) > 0.001 || Math.abs(reading.yaw) > 0.001;
+  if (hasExplicitOrientation) {
+    return { pitch: reading.pitch, roll: reading.roll, yaw: reading.yaw };
+  }
+  const ax = reading.accel_x;
+  const ay = reading.accel_y;
+  const az = reading.accel_z;
+  if (![ax, ay, az].every((value) => Number.isFinite(value))) return { ...ZERO };
+  // Gravity provides pitch and roll when the ESP32 sends raw IMU channels only.
+  const pitch = Math.atan2(ay!, Math.hypot(ax!, az!)) * 180 / Math.PI;
+  const roll = Math.atan2(-ax!, az!) * 180 / Math.PI;
+  return { pitch, roll, yaw: 0 };
 }
 
 export function simulateImuFrame(

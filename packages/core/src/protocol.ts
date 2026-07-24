@@ -7,7 +7,8 @@ export type SerialFrameFormat =
   | "auto"
   | "json"
   | "pd-accel-gyro"
-  | "pd-gyro-accel";
+  | "pd-gyro-accel"
+  | "esp32-wearable";
 
 export type SensorLineOptions = {
   format?: SerialFrameFormat;
@@ -25,6 +26,12 @@ const LEGACY_PD_SENSOR_ORDER = [
   "left_hand",
   "right_hand",
   "right_foot"
+];
+const ESP32_WEARABLE_SENSOR_ORDER = [
+  "left_hand",
+  "left_foot",
+  "right_foot",
+  "right_hand"
 ];
 const ACCEL_GYRO_CHANNELS: ImuChannel[] = [
   "accel_x",
@@ -91,7 +98,7 @@ export function parseSensorLine(
   options: SensorLineOptions = {}
 ): SensorFrame | null {
   const format = options.format ?? "auto";
-  if (format !== "pd-accel-gyro" && format !== "pd-gyro-accel") {
+  if (format !== "pd-accel-gyro" && format !== "pd-gyro-accel" && format !== "esp32-wearable") {
     const jsonFrame = parseJsonSensorLine(line, receivedAt);
     if (jsonFrame || format === "json") return jsonFrame;
   }
@@ -141,10 +148,13 @@ function parseLegacySensorLine(
   const values = atoms.map(Number);
   if (!values.every(Number.isFinite)) return null;
 
-  const configuredSensorIds = orderLegacySensorIds((options.sensorIds?.length
+  const configuredIds = (options.sensorIds?.length
     ? options.sensorIds
     : DEFAULT_LEGACY_SENSOR_IDS
-  ).slice(0, 32));
+  ).slice(0, 32);
+  const configuredSensorIds = options.format === "esp32-wearable"
+    ? orderEsp32WearableSensorIds(configuredIds)
+    : orderLegacySensorIds(configuredIds);
   if (!configuredSensorIds.length) return null;
   const allowedChannelCounts = [3, 6, 8, 9];
   const exactChannelCount = values.length / configuredSensorIds.length;
@@ -187,5 +197,11 @@ function parseLegacySensorLine(
 function orderLegacySensorIds(sensorIds: string[]): string[] {
   const known = LEGACY_PD_SENSOR_ORDER.filter((id) => sensorIds.includes(id));
   const remaining = sensorIds.filter((id) => !LEGACY_PD_SENSOR_ORDER.includes(id));
+  return [...known, ...remaining];
+}
+
+function orderEsp32WearableSensorIds(sensorIds: string[]): string[] {
+  const known = ESP32_WEARABLE_SENSOR_ORDER.filter((id) => sensorIds.includes(id));
+  const remaining = sensorIds.filter((id) => !ESP32_WEARABLE_SENSOR_ORDER.includes(id));
   return [...known, ...remaining];
 }

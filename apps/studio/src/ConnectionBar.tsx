@@ -72,6 +72,7 @@ export function ConnectionBar({
         >
           <option value="auto">{t("serial.format.auto")}</option>
           <option value="json">{t("serial.format.json")}</option>
+          <option value="esp32-wearable">{t("serial.format.esp32")}</option>
           <option value="pd-accel-gyro">{t("serial.format.pdAccel")}</option>
           <option value="pd-gyro-accel">{t("serial.format.pdGyro")}</option>
         </select>

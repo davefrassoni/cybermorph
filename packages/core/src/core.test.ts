@@ -95,6 +95,21 @@ describe("sensor protocol", () => {
     });
   });
 
+  it("maps the ESP32 wearable order to wrists and feet", () => {
+    const parsed = parseSensorLine(
+      Array.from({ length: 24 }, (_, index) => index + 1).join(" "),
+      123,
+      { sensorIds: DEFAULT_SENSORS.map((sensor) => sensor.id), format: "esp32-wearable" }
+    );
+    expect(Object.keys(parsed?.sensors ?? {})).toEqual([
+      "left_hand", "left_foot", "right_foot", "right_hand"
+    ]);
+    expect(parsed?.sensors.left_hand).toMatchObject({ accel_x: 1, accel_y: 2, accel_z: 3, gyro_x: 4, gyro_y: 5, gyro_z: 6 });
+    expect(parsed?.sensors.left_foot?.accel_x).toBe(7);
+    expect(parsed?.sensors.right_foot?.accel_x).toBe(13);
+    expect(parsed?.sensors.right_hand?.accel_x).toBe(19);
+  });
+
   it("does not interpret arbitrary text or incomplete lists as sensor data", () => {
     expect(parseSensorLine("open 3")).toBeNull();
     expect(parseSensorLine("1 2 3 4 5")).toBeNull();

@@ -171,7 +171,7 @@ function Studio() {
   const [serialConnected, setSerialConnected] = useState(false);
   const [serialStatus, setSerialStatus] = useState<"notConnected" | "connected" | "disconnected">("notConnected");
   const [serialFormat, setSerialFormat] = useState<SerialFrameFormat>(
-    () => readStored("cm.serialFormat.v1", "auto")
+    () => readStored("cm.serialFormat.v2", "esp32-wearable")
   );
   const serialSuit = useRef(new WebSerialSuit());
   const [serialLine, setSerialLine] = useState<SerialMonitorLine | null>(null);
@@ -204,7 +204,7 @@ function Studio() {
     localStorage.setItem("cm.sensors.v1", JSON.stringify(sensors));
   }, [sensors]);
   useEffect(() => { mappingsRef.current = mappings; localStorage.setItem("cm.mappings.v2", JSON.stringify(mappings)); }, [mappings]);
-  useEffect(() => { localStorage.setItem("cm.serialFormat.v1", JSON.stringify(serialFormat)); }, [serialFormat]);
+  useEffect(() => { localStorage.setItem("cm.serialFormat.v2", JSON.stringify(serialFormat)); }, [serialFormat]);
   useEffect(() => { localStorage.setItem("cm.captures.v2", JSON.stringify(captures)); }, [captures]);
   useEffect(() => { modelRef.current = model; if (model) localStorage.setItem("cm.model.v2", JSON.stringify(model)); }, [model]);
   useEffect(() => { localStorage.setItem("cm.movements.v1", JSON.stringify(movements)); }, [movements]);

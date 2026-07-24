@@ -27,11 +27,11 @@ const defaultNameVariants = new Set([
   "Left foot IMU",
   "Right foot IMU"
 ]);
-const legacyMpuLabels: Partial<Record<string, string>> = {
-  left_foot: "MPU2 · SERIAL 1",
-  left_hand: "MPU1 · SERIAL 2",
-  right_hand: "MPU4 · SERIAL 3",
-  right_foot: "MPU3 · SERIAL 4"
+const esp32SerialLabels: Partial<Record<string, string>> = {
+  left_hand: "ESP32 · SENSOR 1 · MUÑECA IZQ.",
+  left_foot: "ESP32 · SENSOR 2 · PIE IZQ.",
+  right_foot: "ESP32 · SENSOR 3 · PIE DER.",
+  right_hand: "ESP32 · SENSOR 4 · MUÑECA DER."
 };
 
 export function SensorManager({ sensors, onChange }: Props) {
@@ -74,7 +74,7 @@ export function SensorManager({ sensors, onChange }: Props) {
                 aria-label={t("sensor.name")}
                 onChange={(event) => patch(sensor.id, { name: event.target.value })}
               />
-              <small>{sensor.id}{legacyMpuLabels[sensor.id] ? ` · ${legacyMpuLabels[sensor.id]}` : ""}</small>
+              <small>{sensor.id}{esp32SerialLabels[sensor.id] ? ` · ${esp32SerialLabels[sensor.id]}` : ""}</small>
             </div>
             <select
               aria-label={t("sensor.location")}
