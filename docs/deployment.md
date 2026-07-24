@@ -12,14 +12,23 @@ No se necesitan secretos en el repositorio. Cada push a `main`:
 3. genera el instalador de Windows de 64 bits;
 4. publica la web y el instalador como artefactos de GitHub Actions;
 5. reemplaza el release continuo `desktop-latest`, que contiene el instalador
-   versionado, su blockmap y `latest.yml`.
+   versionado, su blockmap y `latest.yml`;
+6. abre una conexión SSH verificada, carga los artefactos en un directorio
+   temporal y ejecuta [`deploy/deploy-artifacts.sh`](../deploy/deploy-artifacts.sh);
+7. valida el SHA-512 del instalador, sincroniza la web, comprueba Nginx y
+   consulta las URLs públicas.
 
-En el VPS, `cybermorph-pull.timer` revisa la rama pública `main` cada minuto. Al
-detectar un SHA diferente, [`deploy/server-pull.sh`](../deploy/server-pull.sh)
-clona esa revisión exacta, repite los tests y el build, y sincroniza el sitio en
-`/var/www/davefrassoni/cybermorph`. El directorio `downloads/` se sincroniza
-desde el release continuo incluso cuando la web ya se encuentra en el SHA
-actual. La aplicación consulta
+El despliegue directo utiliza el Environment `production` de GitHub:
+
+- secrets `VPS_SSH_PRIVATE_KEY` y `VPS_KNOWN_HOSTS`;
+- variables `VPS_HOST`, `VPS_PORT`, `VPS_USER` y `VPS_DEPLOY_PATH`.
+
+No se guarda ninguna credencial en el repositorio. El antiguo
+`cybermorph-pull.timer` queda desactivado después del primer despliegue directo;
+[`deploy/server-pull.sh`](../deploy/server-pull.sh) se conserva únicamente como
+procedimiento de recuperación manual.
+
+La aplicación consulta
 `https://davefrassoni.com/cybermorph/downloads/latest.yml`, descarga el
 instalador versionado y ofrece reiniciar para aplicar la actualización.
 
@@ -40,6 +49,5 @@ Copiar el contenido de `apps/studio/dist` a
 `/var/www/davefrassoni/cybermorph` y colocar el instalador en
 `cybermorph/downloads/CyberMorph-Setup.exe`.
 
-El sitio es una aplicación estática. No necesita base de datos, puertos
-adicionales, webhooks ni un nuevo bloque Nginx. El timer de despliegue utiliza
-únicamente conexiones HTTPS salientes.
+El sitio es una aplicación estática. No necesita base de datos, webhooks ni un
+nuevo bloque Nginx.

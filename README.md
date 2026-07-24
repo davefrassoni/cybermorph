@@ -95,9 +95,8 @@ también pueden exportarse como CSV.
 El sitio se compila con la ruta base `/cybermorph/`. Cada push a `main` ejecuta
 los tests, compila la web y genera el instalador de Windows como artefacto de
 GitHub Actions. También publica el manifiesto y los archivos del canal continuo
-de actualización de escritorio. En el VPS, `cybermorph-pull.timer` detecta
-nuevos commits, repite los tests y el build, y publica la web en
-`/var/www/davefrassoni/cybermorph`.
+de actualización de escritorio. Tras validar ambos artefactos, GitHub Actions
+los despliega directamente al VPS por SSH y comprueba Nginx y la URL pública.
 
 Consultar [`docs/deployment.md`](docs/deployment.md) para conocer el flujo
 completo.

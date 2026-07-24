@@ -94,16 +94,66 @@ jobs:
             --notes "Canal automático de actualización para CyberMorph Studio." \
             --prerelease
 
-  deployment-ready:
-    name: Hand off to VPS pull deploy
+  deploy-production:
+    name: Deploy directly to production
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: [test-web, build-windows, publish-desktop-update]
     runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://davefrassoni.com/cybermorph/
+    env:
+      VPS_HOST: ${{ vars.VPS_HOST || secrets.VPS_HOST }}
+      VPS_PORT: ${{ vars.VPS_PORT || secrets.VPS_PORT }}
+      VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
+      VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || secrets.VPS_DEPLOY_PATH }}
     steps:
-      - name: Confirm deployment handoff
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: cybermorph-web
+          path: artifacts/web
+      - uses: actions/download-artifact@v4
+        with:
+          name: cybermorph-windows
+          path: artifacts/windows
+      - name: Configure verified SSH access
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
         run: |
-          echo "Web and Windows artifacts are ready."
-          echo "The cybermorph-pull.timer on the VPS will pull this main commit."
+          test -n "$VPS_HOST"
+          test -n "$VPS_PORT"
+          test -n "$VPS_USER"
+          test -n "$VPS_DEPLOY_PATH"
+          test -n "$VPS_SSH_PRIVATE_KEY"
+          test -n "$VPS_KNOWN_HOSTS"
+          [[ "$VPS_PORT" =~ ^[0-9]{1,5}$ ]]
+          [[ "$VPS_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]]
+          [[ "$VPS_HOST" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "$VPS_DEPLOY_PATH" =~ ^/var/www/[A-Za-z0-9._/-]+$ ]]
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          chmod 0600 "$HOME/.ssh/deploy_key"
+          chmod 0644 "$HOME/.ssh/known_hosts"
+      - name: Upload verified artifacts
+        run: |
+          remote="$VPS_USER@$VPS_HOST"
+          staging="/tmp/cybermorph-deploy-$GITHUB_SHA"
+          ssh -p "$VPS_PORT" -i "$HOME/.ssh/deploy_key" "$remote" \
+            "rm -rf '$staging' && mkdir -p '$staging/web' '$staging/windows'"
+          rsync -az --delete \
+            -e "ssh -p $VPS_PORT -i $HOME/.ssh/deploy_key" \
+            artifacts/web/ "$remote:$staging/web/"
+          rsync -az --delete \
+            -e "ssh -p $VPS_PORT -i $HOME/.ssh/deploy_key" \
+            artifacts/windows/ "$remote:$staging/windows/"
+          rsync -az \
+            -e "ssh -p $VPS_PORT -i $HOME/.ssh/deploy_key" \
+            deploy/deploy-artifacts.sh "$remote:$staging/deploy-artifacts.sh"
+          ssh -p "$VPS_PORT" -i "$HOME/.ssh/deploy_key" "$remote" \
+            "bash '$staging/deploy-artifacts.sh' '$VPS_DEPLOY_PATH' '$GITHUB_SHA' '$staging'"
 
   release:
     name: Publish tagged release
