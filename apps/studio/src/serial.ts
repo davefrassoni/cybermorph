@@ -17,7 +17,7 @@ export class WebSerialSuit {
     await port.open({ baudRate: 115200, bufferSize: 65536 });
     this.port = port;
     this.active = true;
-    onStatus(true, "Arduino connected at 115200 baud");
+    onStatus(true, "Serial input connected at 115200 baud");
 
     const reader = port.readable?.getReader();
     if (!reader) throw new Error("The serial port has no readable stream.");

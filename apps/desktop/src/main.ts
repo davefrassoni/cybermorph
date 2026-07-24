@@ -127,10 +127,7 @@ app.whenReady().then(() => {
   );
   session.defaultSession.on("select-serial-port", (event, portList, _webContents, callback) => {
     event.preventDefault();
-    const preferred =
-      portList.find((port) => /arduino|wch|ch340|cp210|usb serial/i.test(port.displayName ?? "")) ??
-      portList[0];
-    callback(preferred?.portId ?? "");
+    callback(portList[0]?.portId ?? "");
   });
   createWindow();
   setTimeout(() => { void checkForUpdates(); }, 5000);

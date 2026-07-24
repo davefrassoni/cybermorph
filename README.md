@@ -55,10 +55,11 @@ npm run dist:win
 
 El instalador se genera en `apps/desktop/release/`.
 
-## Protocolo Arduino
+## Protocolo de entrada serial
 
-Enviar un objeto JSON por frame, delimitado por un salto de línea, a 115200
-baudios:
+CyberMorph no identifica ni exige una placa Arduino. Cualquier dispositivo o
+programa puede enviar un objeto JSON por frame, delimitado por un salto de
+línea, a 115200 baudios:
 
 ```json
 {"t":1712345678,"sensors":{"left_hand":{"pitch":42.1,"roll":-8.4,"yaw":12.0,"accel":[0.4,-1.2,9.7],"gyro":[84.0,-12.5,6.1]},"right_foot":{"pitch":8.0,"roll":2.0,"yaw":-4.0,"accel":[1.1,0.3,12.8],"gyro":[2.0,18.0,-3.0]}}}

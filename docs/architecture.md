@@ -1,7 +1,7 @@
 # Arquitectura
 
 ```text
-IMUs Arduino -- ACC/GYRO JSONL / USB serie --+
+Sensores / dispositivo -- ACC/GYRO JSONL / USB serie --+
                                              +--> configuración de sensores
 Simulador 3D -- IMUs virtuales ---------------+              |
                                                             +--> MIDI / audio / loops

@@ -11,9 +11,9 @@ La configuración inicial tiene cuatro IMUs:
 | `left_foot` | Tobillo/pie izquierdo |
 | `right_foot` | Tobillo/pie derecho |
 
-El ID identifica el origen dentro del JSON de Arduino. La ubicación determina
-dónde se dibuja el módulo en el avatar y qué parte del cuerpo representa. Desde
-**Sensores IMU** se puede:
+El ID identifica el origen dentro del JSON recibido por serial. La ubicación
+determina dónde se dibuja el módulo en el avatar y qué parte del cuerpo
+representa. Desde **Sensores IMU** se puede:
 
 - activar o desactivar cada sensor sin perder su configuración;
 - cambiar su nombre y ubicación corporal;
