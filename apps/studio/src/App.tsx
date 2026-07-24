@@ -49,7 +49,7 @@ import {
 } from "./i18n";
 
 const isDesktop = Boolean(window.cybermorph);
-const DOWNLOAD_URL = "./downloads/CyberMorph-Setup.exe?v=0.1.0-clean";
+const DOWNLOAD_FALLBACK = "./downloads/CyberMorph-Setup.exe?channel=rolling";
 
 function downloadBrowser(name: string, content: string) {
   const url = URL.createObjectURL(new Blob([content], { type: "application/octet-stream" }));
@@ -71,6 +71,16 @@ function readStored<T>(key: string, fallback: T): T {
 
 function Hero({ onLaunch }: { onLaunch: () => void }) {
   const { t } = useI18n();
+  const [downloadUrl, setDownloadUrl] = useState(DOWNLOAD_FALLBACK);
+  useEffect(() => {
+    void fetch("./downloads/latest.yml", { cache: "no-store" })
+      .then((response) => response.ok ? response.text() : "")
+      .then((manifest) => {
+        const path = manifest.match(/^path:\s*(CyberMorph-Setup-[0-9]+\.[0-9]+\.[0-9]+\.exe)\s*$/m)?.[1];
+        if (path) setDownloadUrl(`./downloads/${path}`);
+      })
+      .catch(() => { /* the generic installer remains available as a fallback */ });
+  }, []);
   return (
     <section className="hero" id="home">
       <div className="noise" />
@@ -83,7 +93,7 @@ function Hero({ onLaunch }: { onLaunch: () => void }) {
         </div>
         <div className="nav-actions">
           <LanguageToggle compact />
-          <a className="nav-download" href={DOWNLOAD_URL}><Download size={15} /> {t("nav.windows")}</a>
+          <a className="nav-download" href={downloadUrl}><Download size={15} /> {t("nav.windows")}</a>
         </div>
       </nav>
       <div className="hero-copy">
@@ -92,7 +102,7 @@ function Hero({ onLaunch }: { onLaunch: () => void }) {
         <p>{t("hero.description")}</p>
         <div className="hero-actions">
           <button className="hero-primary" onClick={onLaunch}>{t("hero.launch")} <ArrowRight size={18} /></button>
-          <a className="hero-secondary" href={DOWNLOAD_URL}><Download size={17} /> {t("hero.download")}</a>
+          <a className="hero-secondary" href={downloadUrl}><Download size={17} /> {t("hero.download")}</a>
         </div>
         <span className="build-note">{t("hero.build")}</span>
       </div>
