@@ -1,7 +1,47 @@
 import { AXES } from "./types.js";
-import type { SensorFrame, SensorVector } from "./types.js";
+import type { ImuChannel, SensorFrame, SensorVector } from "./types.js";
 
 type UnknownRecord = Record<string, unknown>;
+
+export type SerialFrameFormat =
+  | "auto"
+  | "json"
+  | "pd-accel-gyro"
+  | "pd-gyro-accel";
+
+export type SensorLineOptions = {
+  format?: SerialFrameFormat;
+  sensorIds?: string[];
+};
+
+const DEFAULT_LEGACY_SENSOR_IDS = [
+  "left_hand",
+  "right_hand",
+  "left_foot",
+  "right_foot"
+];
+const ACCEL_GYRO_CHANNELS: ImuChannel[] = [
+  "accel_x",
+  "accel_y",
+  "accel_z",
+  "gyro_x",
+  "gyro_y",
+  "gyro_z",
+  "pitch",
+  "roll",
+  "yaw"
+];
+const GYRO_ACCEL_CHANNELS: ImuChannel[] = [
+  "gyro_x",
+  "gyro_y",
+  "gyro_z",
+  "accel_x",
+  "accel_y",
+  "accel_z",
+  "pitch",
+  "roll",
+  "yaw"
+];
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -41,7 +81,20 @@ function parseVector(value: unknown): SensorVector | null {
 
 export function parseSensorLine(
   line: string,
-  receivedAt = Date.now()
+  receivedAt = Date.now(),
+  options: SensorLineOptions = {}
+): SensorFrame | null {
+  const format = options.format ?? "auto";
+  if (format !== "pd-accel-gyro" && format !== "pd-gyro-accel") {
+    const jsonFrame = parseJsonSensorLine(line, receivedAt);
+    if (jsonFrame || format === "json") return jsonFrame;
+  }
+  return parseLegacySensorLine(line, receivedAt, options);
+}
+
+function parseJsonSensorLine(
+  line: string,
+  receivedAt: number
 ): SensorFrame | null {
   let parsed: unknown;
   try {
@@ -63,4 +116,64 @@ export function parseSensorLine(
     timestamp: Number.isFinite(rawTimestamp) ? rawTimestamp : receivedAt,
     sensors
   };
+}
+
+/**
+ * Adapta las listas de números que el patch histórico `pd 32serial` enviaba a
+ * `unpack`. Se admite el prefijo opcional `list` y separadores por espacios,
+ * comas o punto y coma.
+ */
+function parseLegacySensorLine(
+  line: string,
+  receivedAt: number,
+  options: SensorLineOptions
+): SensorFrame | null {
+  const cleaned = line.trim().replace(/^list\s+/i, "").replace(/;$/, "").trim();
+  if (!cleaned) return null;
+  const atoms = cleaned.split(/[\s,;]+/);
+  if (!atoms.length || atoms.length > 288) return null;
+  const values = atoms.map(Number);
+  if (!values.every(Number.isFinite)) return null;
+
+  const configuredSensorIds = (options.sensorIds?.length
+    ? options.sensorIds
+    : DEFAULT_LEGACY_SENSOR_IDS
+  ).slice(0, 32);
+  if (!configuredSensorIds.length) return null;
+  const allowedChannelCounts = [3, 6, 8, 9];
+  const exactChannelCount = values.length / configuredSensorIds.length;
+  const channelsPerSensor = allowedChannelCounts.includes(exactChannelCount)
+    ? exactChannelCount
+    : allowedChannelCounts
+      .map((count) => ({ count, sensors: values.length / count }))
+      .filter(({ sensors }) =>
+        Number.isInteger(sensors) &&
+        sensors > 0 &&
+        sensors <= configuredSensorIds.length
+      )
+      .sort((left, right) => right.sensors - left.sensors)[0]?.count;
+  if (!channelsPerSensor) return null;
+  const sensorIds = configuredSensorIds.slice(0, values.length / channelsPerSensor);
+
+  const channelOrder = options.format === "pd-gyro-accel"
+    ? GYRO_ACCEL_CHANNELS
+    : ACCEL_GYRO_CHANNELS;
+  const sensors: SensorFrame["sensors"] = {};
+
+  for (const [sensorIndex, sensorId] of sensorIds.entries()) {
+    if (!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(sensorId)) continue;
+    const offset = sensorIndex * channelsPerSensor;
+    const vector: SensorVector = { pitch: 0, roll: 0, yaw: 0 };
+    const channels = channelsPerSensor === 3 ? AXES : channelOrder;
+    for (let index = 0; index < channelsPerSensor; index += 1) {
+      const channel = channels[index];
+      const value = values[offset + index];
+      if (channel && value !== undefined) vector[channel] = value;
+    }
+    sensors[sensorId] = vector;
+  }
+
+  return Object.keys(sensors).length
+    ? { timestamp: receivedAt, sensors }
+    : null;
 }

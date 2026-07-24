@@ -78,6 +78,22 @@ lo que una misma placa se puede mover sin cambiar los mapeos. Los campos
 orientación; aceleración y giroscopio se pueden enviar como arrays `accel` y
 `gyro` o como `ax/ay/az` y `gx/gy/gz`.
 
+También se reconoce el formato histórico de Pure Data mostrado en
+`pd 32serial`: una línea con 32 números separados por espacios, comas o punto y
+coma. Se interpreta como cuatro bloques consecutivos de ocho valores, uno por
+cada sensor configurado:
+
+```text
+AX AY AZ GX GY GZ pitch roll  AX AY AZ GX GY GZ pitch roll  ...
+```
+
+El selector junto al botón **Elegir puerto serial** permite usar detección
+automática, forzar JSON o elegir si cada bloque de Pure Data comienza con
+aceleración (`AX`) o giroscopio (`GX`). También se detectan listas de 24 valores
+(seis por IMU) y 36 valores (nueve por IMU). El orden de los bloques sigue el
+orden visible del panel **Sensores IMU**, incluidos los sensores desactivados,
+para no desplazar accidentalmente los datos restantes.
+
 Consultar [`docs/arduino-example.ino`](docs/arduino-example.ino) para ver una
 plantilla completa del transmisor.
 

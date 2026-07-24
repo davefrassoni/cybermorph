@@ -26,6 +26,23 @@ orientación `pitch/roll/yaw`, aceleración `accel_x/y/z` o velocidad angular
 grados por segundo, aunque los rangos de entrada son editables para adaptarse a
 cada biblioteca y calibración.
 
+### Compatibilidad con el patch de Pure Data
+
+La entrada serial acepta directamente la lista numérica producida por el
+subpatch `pd 32serial` y su `unpack` de 32 salidas. Cada salto de línea representa
+un frame completo y los valores se dividen en cuatro bloques de ocho, siguiendo
+el orden de los sensores del panel.
+
+El perfil **Pure Data · AX primero** usa
+`AX AY AZ GX GY GZ pitch roll`; **Pure Data · GX primero** invierte los dos
+grupos XYZ. El modo **Auto** intenta primero JSON y luego el formato numérico.
+También admite 6 canales por sensor (ACC + GYRO), 9 canales (ACC + GYRO +
+orientación completa) y el prefijo opcional `list` de Pure Data.
+
+Es importante que Arduino termine cada frame con `\n` o `\r\n`. Los mensajes
+`open`, `close` y `devices` pertenecen al control de `[comport]` dentro de Pure
+Data y no deben ser enviados por Arduino.
+
 ## Simulación y movimientos
 
 El simulador convierte la pose del avatar en lecturas virtuales de las IMUs

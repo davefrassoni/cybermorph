@@ -38,6 +38,7 @@ import {
   type MotionMapping,
   type Pose,
   type SensorFrame,
+  type SerialFrameFormat,
   type SimulatorMotionState,
   type SuitSensor,
   type TrainedGestureModel
@@ -168,6 +169,9 @@ function Studio() {
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [serialConnected, setSerialConnected] = useState(false);
   const [serialStatus, setSerialStatus] = useState<"notConnected" | "connected" | "disconnected">("notConnected");
+  const [serialFormat, setSerialFormat] = useState<SerialFrameFormat>(
+    () => readStored("cm.serialFormat.v1", "auto")
+  );
   const serialSuit = useRef(new WebSerialSuit());
   const [captures, setCaptures] = useState<LabeledCapture[]>(() => readStored("cm.captures.v2", []));
   const [label, setLabel] = useState("reach");
@@ -197,6 +201,7 @@ function Studio() {
     localStorage.setItem("cm.sensors.v1", JSON.stringify(sensors));
   }, [sensors]);
   useEffect(() => { mappingsRef.current = mappings; localStorage.setItem("cm.mappings.v2", JSON.stringify(mappings)); }, [mappings]);
+  useEffect(() => { localStorage.setItem("cm.serialFormat.v1", JSON.stringify(serialFormat)); }, [serialFormat]);
   useEffect(() => { localStorage.setItem("cm.captures.v2", JSON.stringify(captures)); }, [captures]);
   useEffect(() => { modelRef.current = model; if (model) localStorage.setItem("cm.model.v2", JSON.stringify(model)); }, [model]);
   useEffect(() => { localStorage.setItem("cm.movements.v1", JSON.stringify(movements)); }, [movements]);
@@ -419,7 +424,7 @@ function Studio() {
           <div className="live-badge"><i /> {t("studio.engine")}</div>
         </div>
       </div>
-      <ConnectionBar source={source} onSource={setSource} serialConnected={serialConnected} serialMessage={t(`serial.${serialStatus}` as TranslationKey)} audioEnabled={audioEnabled} onSerial={() => {
+      <ConnectionBar source={source} onSource={setSource} serialConnected={serialConnected} serialMessage={t(`serial.${serialStatus}` as TranslationKey)} serialFormat={serialFormat} onSerialFormat={setSerialFormat} audioEnabled={audioEnabled} onSerial={() => {
         if (serialConnected) {
           void serialSuit.current.disconnect().then(() => {
             setSerialConnected(false);
@@ -433,7 +438,9 @@ function Studio() {
             (connected) => {
               setSerialConnected(connected);
               setSerialStatus(connected ? "connected" : "disconnected");
-            }
+            },
+            sensorsRef.current.map((sensor) => sensor.id),
+            serialFormat
           ).catch(() => {
             setSerialConnected(false);
             setSource("simulator");

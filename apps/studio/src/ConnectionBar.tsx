@@ -1,5 +1,6 @@
 import { Cable, CirclePower, Cpu, Music2, Usb } from "lucide-react";
 import { useState } from "react";
+import type { SerialFrameFormat } from "@cybermorph/core";
 import { useI18n } from "./i18n";
 
 type Props = {
@@ -7,6 +8,8 @@ type Props = {
   onSource: (source: "simulator" | "hardware") => void;
   serialConnected: boolean;
   serialMessage: string;
+  serialFormat: SerialFrameFormat;
+  onSerialFormat: (format: SerialFrameFormat) => void;
   audioEnabled: boolean;
   onAudio: () => void;
   onSerial: () => void;
@@ -18,6 +21,8 @@ export function ConnectionBar({
   onSource,
   serialConnected,
   serialMessage,
+  serialFormat,
+  onSerialFormat,
   audioEnabled,
   onAudio,
   onSerial,
@@ -59,6 +64,17 @@ export function ConnectionBar({
             </button>
           </>
         ) : <span>{t("serial.unsupported")}</span>}
+        <select
+          aria-label={t("serial.format")}
+          value={serialFormat}
+          disabled={serialConnected}
+          onChange={(event) => onSerialFormat(event.target.value as SerialFrameFormat)}
+        >
+          <option value="auto">{t("serial.format.auto")}</option>
+          <option value="json">{t("serial.format.json")}</option>
+          <option value="pd-accel-gyro">{t("serial.format.pdAccel")}</option>
+          <option value="pd-gyro-accel">{t("serial.format.pdGyro")}</option>
+        </select>
         <span className={`status-dot ${serialConnected ? "online" : ""}`} title={serialMessage} />
         <button className="compact-button" onClick={onFirmware}><Cpu size={14} /> {t("firmware.open")}</button>
       </div>

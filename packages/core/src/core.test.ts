@@ -36,6 +36,77 @@ describe("sensor protocol", () => {
     expect(raw?.sensors.left_hand?.gyro_y).toBe(5);
     expect(parseSensorLine("bad data")).toBeNull();
   });
+
+  it("parses the 32-number Pure Data frame as four blocks of eight", () => {
+    const parsed = parseSensorLine(
+      "list 1 2 3 4 5 6 7 8  11 12 13 14 15 16 17 18  21 22 23 24 25 26 27 28  31 32 33 34 35 36 37 38;"
+    );
+    expect(parsed?.sensors.left_hand).toMatchObject({
+      accel_x: 1,
+      accel_y: 2,
+      accel_z: 3,
+      gyro_x: 4,
+      gyro_y: 5,
+      gyro_z: 6,
+      pitch: 7,
+      roll: 8
+    });
+    expect(parsed?.sensors.right_foot?.gyro_z).toBe(36);
+  });
+
+  it("supports six channels per sensor and the alternate gyro-first order", () => {
+    const parsed = parseSensorLine(
+      "1,2,3,4,5,6,11,12,13,14,15,16",
+      123,
+      {
+        sensorIds: ["hand", "foot"],
+        format: "pd-gyro-accel"
+      }
+    );
+    expect(parsed).toEqual({
+      timestamp: 123,
+      sensors: {
+        hand: {
+          pitch: 0,
+          roll: 0,
+          yaw: 0,
+          gyro_x: 1,
+          gyro_y: 2,
+          gyro_z: 3,
+          accel_x: 4,
+          accel_y: 5,
+          accel_z: 6
+        },
+        foot: {
+          pitch: 0,
+          roll: 0,
+          yaw: 0,
+          gyro_x: 11,
+          gyro_y: 12,
+          gyro_z: 13,
+          accel_x: 14,
+          accel_y: 15,
+          accel_z: 16
+        }
+      }
+    });
+  });
+
+  it("does not interpret arbitrary text or incomplete lists as sensor data", () => {
+    expect(parseSensorLine("open 3")).toBeNull();
+    expect(parseSensorLine("1 2 3 4 5")).toBeNull();
+    expect(parseSensorLine("1 2 nope 4 5 6")).toBeNull();
+  });
+
+  it("keeps a four-sensor legacy stream valid after another sensor is configured", () => {
+    const parsed = parseSensorLine(
+      Array.from({ length: 32 }, (_, index) => index + 1).join(" "),
+      1,
+      { sensorIds: ["one", "two", "three", "four", "future_sensor"] }
+    );
+    expect(Object.keys(parsed?.sensors ?? {})).toEqual(["one", "two", "three", "four"]);
+    expect(parsed?.sensors.four?.roll).toBe(32);
+  });
 });
 
 describe("mapping engine", () => {

@@ -1,4 +1,8 @@
-import { parseSensorLine, type SensorFrame } from "@cybermorph/core";
+import {
+  parseSensorLine,
+  type SensorFrame,
+  type SerialFrameFormat
+} from "@cybermorph/core";
 
 export class WebSerialSuit {
   private port?: SerialPort;
@@ -7,7 +11,9 @@ export class WebSerialSuit {
 
   async connect(
     onFrame: (frame: SensorFrame) => void,
-    onStatus: (connected: boolean, message: string) => void
+    onStatus: (connected: boolean, message: string) => void,
+    sensorIds: string[],
+    format: SerialFrameFormat
   ): Promise<void> {
     if (!navigator.serial) {
       throw new Error("Web Serial is unavailable. Use the Windows desktop app.");
@@ -30,10 +36,10 @@ export class WebSerialSuit {
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         if (buffer.length > 1024 * 1024) buffer = "";
-        const lines = buffer.split(/\r?\n/);
+        const lines = buffer.split(/\r\n|\r|\n/);
         buffer = lines.pop() ?? "";
         for (const line of lines) {
-          const frame = parseSensorLine(line);
+          const frame = parseSensorLine(line, Date.now(), { sensorIds, format });
           if (frame) onFrame(frame);
         }
       }
