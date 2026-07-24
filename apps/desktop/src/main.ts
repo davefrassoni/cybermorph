@@ -127,7 +127,11 @@ app.whenReady().then(() => {
   );
   session.defaultSession.on("select-serial-port", (event, portList, _webContents, callback) => {
     event.preventDefault();
-    callback(portList[0]?.portId ?? "");
+    const usbSerialPort = portList.find((port) => {
+      const label = `${port.portName ?? ""} ${port.displayName ?? ""} ${port.vendorId ?? ""} ${port.productId ?? ""}`.toLowerCase();
+      return ["usb", "uart", "cp210", "ch340", "ftdi"].some((term) => label.includes(term));
+    });
+    callback((usbSerialPort ?? portList[0])?.portId ?? "");
   });
   createWindow();
   setTimeout(() => { void checkForUpdates(); }, 5000);
