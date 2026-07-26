@@ -72,14 +72,20 @@ function orientationFromReading(reading: SensorVector): SensorVector {
   if (hasExplicitOrientation) {
     return { pitch: reading.pitch, roll: reading.roll, yaw: reading.yaw };
   }
-  const ax = reading.accel_x;
-  const ay = reading.accel_y;
-  const az = reading.accel_z;
-  if (![ax, ay, az].every((value) => Number.isFinite(value))) return { ...ZERO };
-  // Gravity provides pitch and roll when the ESP32 sends raw IMU channels only.
-  const pitch = Math.atan2(ay!, Math.hypot(ax!, az!)) * 180 / Math.PI;
-  const roll = Math.atan2(-ax!, az!) * 180 / Math.PI;
-  return { pitch, roll, yaw: 0 };
+  const gx = reading.gyro_x;
+  const gy = reading.gyro_y;
+  const gz = reading.gyro_z;
+  if (![gx, gy, gz].every((value) => Number.isFinite(value))) return { ...ZERO };
+  // The ESP32 wearable stream uses the three gyro channels as direct joint rotation controls.
+  return {
+    pitch: gyroToAngle(gx!),
+    roll: gyroToAngle(gy!),
+    yaw: gyroToAngle(gz!)
+  };
+}
+
+function gyroToAngle(value: number): number {
+  return Math.max(-180, Math.min(180, value * 0.7));
 }
 
 export function simulateImuFrame(

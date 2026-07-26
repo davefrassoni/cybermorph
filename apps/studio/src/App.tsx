@@ -64,6 +64,14 @@ import {
 
 const isDesktop = Boolean(window.cybermorph);
 const DOWNLOAD_FALLBACK = "./downloads/CyberMorph-Setup.exe?channel=rolling";
+const ACCEL_NOTE_THRESHOLD = 120;
+const ESP32_SENSOR_NOTE_BASE: Record<string, number> = {
+  left_hand: 60,
+  left_foot: 63,
+  right_foot: 66,
+  right_hand: 69
+};
+const ACCELERATION_CHANNELS = ["accel_x", "accel_y", "accel_z"] as const;
 
 function downloadBrowser(name: string, content: string) {
   const url = URL.createObjectURL(new Blob([content], { type: "application/octet-stream" }));
@@ -167,6 +175,8 @@ function Studio() {
   const mappingsRef = useRef(mappings);
   const [outputs, setOutputs] = useState<MappingOutput[]>([]);
   const smoothingValues = useRef(new Map<string, number>());
+  const activeAccelerationNotes = useRef(new Set<string>());
+  const activeGyroNotes = useRef(new Set<string>());
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [serialConnected, setSerialConnected] = useState(false);
   const [serialStatus, setSerialStatus] = useState<"notConnected" | "connected" | "disconnected">("notConnected");
@@ -212,7 +222,32 @@ function Studio() {
   const processFrame = useCallback((incoming: SensorFrame) => {
     const frame = selectConfiguredSensors(incoming, sensorsRef.current);
     if (sourceRef.current === "hardware") {
-      setPose((current) => clampPose(applySensorReadingsToPose(current, incoming, sensorsRef.current)));
+      setPose((current) => clampPose(applySensorReadingsToPose(current, frame, sensorsRef.current)));
+      for (const [sensorId, reading] of Object.entries(frame.sensors)) {
+        if (!reading) continue;
+        const noteBase = ESP32_SENSOR_NOTE_BASE[sensorId];
+        if (noteBase === undefined) continue;
+        const gyroMagnitude = Math.hypot(reading.gyro_x ?? 0, reading.gyro_y ?? 0, reading.gyro_z ?? 0);
+        const gyroKey = `${sensorId}:gyro`;
+        const aboveGyroThreshold = gyroMagnitude > 28;
+        if (aboveGyroThreshold && !activeGyroNotes.current.has(gyroKey)) {
+          activeGyroNotes.current.add(gyroKey);
+          const midiNote = noteBase + Math.round(Math.min(8, gyroMagnitude / 24));
+          midiController.triggerNote(midiNote, Math.min(127, 70 + gyroMagnitude / 2), 120);
+        } else if (!aboveGyroThreshold) {
+          activeGyroNotes.current.delete(gyroKey);
+        }
+        ACCELERATION_CHANNELS.forEach((channel, index) => {
+          const key = `${sensorId}:${channel}`;
+          const aboveThreshold = (reading[channel] ?? Number.NEGATIVE_INFINITY) > ACCEL_NOTE_THRESHOLD;
+          if (aboveThreshold && !activeAccelerationNotes.current.has(key)) {
+            activeAccelerationNotes.current.add(key);
+            midiController.triggerNote(noteBase + index);
+          } else if (!aboveThreshold) {
+            activeAccelerationNotes.current.delete(key);
+          }
+        });
+      }
     }
     const mapped = mapFrame(frame, mappingsRef.current, smoothingValues.current);
     setOutputs(mapped);

@@ -40,8 +40,12 @@ export function SerialMonitor({ connected, lastLine, onClear }: Props) {
   }, [initialWidth, lastLine]);
 
   const sensors = Object.entries(lastLine?.frame?.sensors ?? {});
+  const panelStyle = initialWidth
+    ? { width: `min(100%, ${initialWidth}px)`, maxWidth: "100%" }
+    : { width: "100%", maxWidth: "100%" };
+
   return (
-    <section className="panel serial-monitor" aria-live="polite" style={initialWidth ? { width: initialWidth } : undefined}>
+    <section className="panel serial-monitor" aria-live="polite" style={panelStyle}>
       <div className="panel-heading">
         <div>
           <span className="eyebrow">USB / ESP32</span>

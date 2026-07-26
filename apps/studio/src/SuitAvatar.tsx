@@ -558,7 +558,13 @@ function Stage() {
 
 export function SuitAvatar(props: Props) {
   return (
-    <Canvas camera={{ position: [0, 0.55, 6.2], fov: 37 }} shadows dpr={[1, 1.7]}>
+    <Canvas
+      camera={{ position: [0, 0.55, 6.2], fov: 37 }}
+      shadows
+      dpr={[1, 1.7]}
+      resize={{ scroll: false, debounce: 50 }}
+      style={{ width: "100%", height: "100%" }}
+    >
       <color attach="background" args={["#080c12"]} />
       <fog attach="fog" args={["#080c12", 6.5, 11]} />
       <ambientLight intensity={0.58} />

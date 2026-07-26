@@ -102,6 +102,13 @@ class MidiController {
       }
     }
   }
+
+  triggerNote(note: number, velocity = 110, durationMs = 140): void {
+    if (!this.output) return;
+    const midiNote = Math.max(0, Math.min(127, Math.round(note)));
+    this.output.send([0x90, midiNote, Math.max(1, Math.min(127, Math.round(velocity)))]);
+    window.setTimeout(() => this.output?.send([0x80, midiNote, 0]), durationMs);
+  }
 }
 
 export const midiController = new MidiController();

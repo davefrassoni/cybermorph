@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MAPPINGS,
   DEFAULT_SENSORS,
+  NEUTRAL_POSE,
+  applySensorReadingsToPose,
   clampJointValue,
   clampPose,
   mapFrame,
@@ -108,6 +110,14 @@ describe("sensor protocol", () => {
     expect(parsed?.sensors.left_foot?.accel_x).toBe(7);
     expect(parsed?.sensors.right_foot?.accel_x).toBe(13);
     expect(parsed?.sensors.right_hand?.accel_x).toBe(19);
+  });
+
+  it("uses ESP32 gyro channels for limb rotation", () => {
+    const pose = applySensorReadingsToPose(NEUTRAL_POSE, {
+      timestamp: 1,
+      sensors: { left_hand: { pitch: 0, roll: 0, yaw: 0, gyro_x: 40, gyro_y: -20, gyro_z: 10 } }
+    }, DEFAULT_SENSORS);
+    expect(pose.left_wrist).toEqual({ pitch: 28, roll: -14, yaw: 7 });
   });
 
   it("does not interpret arbitrary text or incomplete lists as sensor data", () => {
