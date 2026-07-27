@@ -97,19 +97,29 @@ describe("sensor protocol", () => {
     });
   });
 
-  it("maps the ESP32 wearable order to wrists and feet", () => {
+  it("maps the ESP32 wearable order to left foot, left hand, right hand and right foot", () => {
     const parsed = parseSensorLine(
       Array.from({ length: 24 }, (_, index) => index + 1).join(" "),
       123,
       { sensorIds: DEFAULT_SENSORS.map((sensor) => sensor.id), format: "esp32-wearable" }
     );
     expect(Object.keys(parsed?.sensors ?? {})).toEqual([
-      "left_hand", "left_foot", "right_foot", "right_hand"
+      "left_foot", "left_hand", "right_hand", "right_foot"
     ]);
-    expect(parsed?.sensors.left_hand).toMatchObject({ accel_x: 1, accel_y: 2, accel_z: 3, gyro_x: 4, gyro_y: 5, gyro_z: 6 });
-    expect(parsed?.sensors.left_foot?.accel_x).toBe(7);
-    expect(parsed?.sensors.right_foot?.accel_x).toBe(13);
-    expect(parsed?.sensors.right_hand?.accel_x).toBe(19);
+    expect(parsed?.sensors.left_foot).toMatchObject({ accel_x: 1, accel_y: 2, accel_z: 3, gyro_x: 4, gyro_y: 5, gyro_z: 6 });
+    expect(parsed?.sensors.left_hand?.accel_x).toBe(7);
+    expect(parsed?.sensors.right_hand?.accel_x).toBe(13);
+    expect(parsed?.sensors.right_foot?.accel_x).toBe(19);
+  });
+
+  it("accepts ESP32 wearable frames that provide seven values per sensor", () => {
+    const parsed = parseSensorLine(
+      Array.from({ length: 28 }, (_, index) => index + 1).join(" "),
+      123,
+      { sensorIds: DEFAULT_SENSORS.map((sensor) => sensor.id), format: "esp32-wearable" }
+    );
+    expect(parsed?.sensors.left_hand).toMatchObject({ accel_x: 8, accel_y: 9, accel_z: 10, gyro_x: 11, gyro_y: 12, gyro_z: 13 });
+    expect(parsed?.sensors.right_hand?.accel_x).toBe(15);
   });
 
   it("uses ESP32 gyro channels for limb rotation", () => {

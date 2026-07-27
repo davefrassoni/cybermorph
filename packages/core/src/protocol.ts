@@ -28,10 +28,10 @@ const LEGACY_PD_SENSOR_ORDER = [
   "right_foot"
 ];
 const ESP32_WEARABLE_SENSOR_ORDER = [
-  "left_hand",
   "left_foot",
-  "right_foot",
-  "right_hand"
+  "left_hand",
+  "right_hand",
+  "right_foot"
 ];
 const ACCEL_GYRO_CHANNELS: ImuChannel[] = [
   "accel_x",
@@ -156,7 +156,7 @@ function parseLegacySensorLine(
     ? orderEsp32WearableSensorIds(configuredIds)
     : orderLegacySensorIds(configuredIds);
   if (!configuredSensorIds.length) return null;
-  const allowedChannelCounts = [3, 6, 8, 9];
+  const allowedChannelCounts = [3, 6, 7, 8, 9];
   const exactChannelCount = values.length / configuredSensorIds.length;
   const channelsPerSensor = allowedChannelCounts.includes(exactChannelCount)
     ? exactChannelCount
@@ -180,8 +180,10 @@ function parseLegacySensorLine(
     if (!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(sensorId)) continue;
     const offset = sensorIndex * channelsPerSensor;
     const vector: SensorVector = { pitch: 0, roll: 0, yaw: 0 };
-    const channels = channelsPerSensor === 3 ? AXES : channelOrder;
-    for (let index = 0; index < channelsPerSensor; index += 1) {
+    const channels = channelsPerSensor === 3 ? AXES : channelsPerSensor === 7
+      ? channelOrder.slice(0, 6)
+      : channelOrder.slice(0, channelsPerSensor);
+    for (let index = 0; index < channels.length; index += 1) {
       const channel = channels[index];
       const value = values[offset + index];
       if (channel && value !== undefined) vector[channel] = value;
