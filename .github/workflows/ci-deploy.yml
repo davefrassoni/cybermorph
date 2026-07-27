@@ -141,22 +141,52 @@ jobs:
           test -s "$HOME/.ssh/known_hosts"
           chmod 0600 "$HOME/.ssh/deploy_key"
           chmod 0644 "$HOME/.ssh/known_hosts"
+          cat > "$HOME/.ssh/config" <<EOF
+          Host cybermorph-vps
+            HostName $VPS_HOST
+            Port $VPS_PORT
+            User $VPS_USER
+            IdentityFile $HOME/.ssh/deploy_key
+            UserKnownHostsFile $HOME/.ssh/known_hosts
+            StrictHostKeyChecking yes
+            BatchMode yes
+            ConnectTimeout 15
+            ConnectionAttempts 1
+            ServerAliveInterval 15
+            ServerAliveCountMax 4
+            TCPKeepAlive yes
+            ControlMaster auto
+            ControlPath $HOME/.ssh/cybermorph-%C
+            ControlPersist 10m
+          EOF
+          chmod 0600 "$HOME/.ssh/config"
       - name: Upload verified artifacts
         run: |
-          remote="$VPS_USER@$VPS_HOST"
           staging="/tmp/cybermorph-deploy-$GITHUB_SHA"
-          ssh -p "$VPS_PORT" -i "$HOME/.ssh/deploy_key" "$remote" \
+          attempt=1
+          until ssh cybermorph-vps true; do
+            if [ "$attempt" -ge 6 ]; then
+              echo "Unable to establish SSH connection after $attempt attempts."
+              exit 1
+            fi
+            delay=$((attempt * 5))
+            echo "SSH connection attempt $attempt failed; retrying in ${delay}s."
+            sleep "$delay"
+            attempt=$((attempt + 1))
+          done
+          trap 'ssh -O exit cybermorph-vps >/dev/null 2>&1 || true' EXIT
+          ssh cybermorph-vps \
             "rm -rf '$staging' && mkdir -p '$staging/web' '$staging/windows'"
           rsync -az --delete \
-            -e "ssh -p $VPS_PORT -i $HOME/.ssh/deploy_key" \
-            artifacts/web/ "$remote:$staging/web/"
+            -e ssh \
+            artifacts/web/ "cybermorph-vps:$staging/web/"
           rsync -az --delete \
-            -e "ssh -p $VPS_PORT -i $HOME/.ssh/deploy_key" \
-            artifacts/windows/ "$remote:$staging/windows/"
+            -e ssh \
+            artifacts/windows/ "cybermorph-vps:$staging/windows/"
           rsync -az \
-            -e "ssh -p $VPS_PORT -i $HOME/.ssh/deploy_key" \
-            deploy/deploy-artifacts.sh "$remote:$staging/deploy-artifacts.sh"
-          ssh -p "$VPS_PORT" -i "$HOME/.ssh/deploy_key" "$remote" \
+            -e ssh \
+            deploy/deploy-artifacts.sh "cybermorph-vps:$staging/deploy-artifacts.sh"
+          ssh cybermorph-vps \
             "bash '$staging/deploy-artifacts.sh' '$VPS_DEPLOY_PATH' '$GITHUB_SHA' '$staging'"
 
   release:
