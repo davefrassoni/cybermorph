@@ -1,0 +1,24 @@
+# GitHub-hosted runners occasionally get an egress IP that the VPS's network
+# path silently drops for several minutes (SSH connect times out on every
+# preflight attempt, even though the box's own firewall/sshd are healthy).
+# A fresh runner gets a fresh IP, so retrying the whole run once is far more
+# effective than retrying the SSH step within the same run.
+name: Retry deploy on failure
+
+on:
+  workflow_run:
+    workflows: ["Build and deploy CyberMorph"]
+    types: [completed]
+
+permissions:
+  actions: write
+
+jobs:
+  retry:
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt == 1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-run failed workflow with a fresh runner
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run rerun ${{ github.event.workflow_run.id }} --repo ${{ github.repository }}
